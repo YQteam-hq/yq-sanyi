@@ -1,0 +1,18 @@
+{
+  "name": "yq-sanyi-cli",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "yq-sanyi command line interface: scaffold a project, serve it with live reload",
+  "bin": {
+    "yq": "./bin/yq.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "templates"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  }
+}
