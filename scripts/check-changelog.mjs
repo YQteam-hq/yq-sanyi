@@ -8,6 +8,10 @@ const manifestPath = join(root, 'package.json');
 
 const VERSION_HEADING = /^##\s+\[?v?(\d+\.\d+\.\d+)\]?\s*(?:-\s*(\d{4}-\d{2}-\d{2}))?\s*$/;
 
+function write(line) {
+  process.stdout.write(line + '\n');
+}
+
 function readChangelog() {
   let text;
   try {
@@ -68,13 +72,13 @@ if (errors.length === 0) {
     }
     seen.add(entry.version);
   }
-  console.log('check-changelog: latest entry ' + latest.version + ' (' + latest.date + ') matches package.json');
+  write('check-changelog: latest entry ' + latest.version + ' (' + latest.date + ') matches package.json');
 }
 
 if (errors.length > 0) {
   for (const message of errors) {
-    console.log('check-changelog: ' + message);
+    write('check-changelog: ' + message);
   }
   process.exit(1);
 }
-console.log('check-changelog: ok');
+write('check-changelog: ok');
