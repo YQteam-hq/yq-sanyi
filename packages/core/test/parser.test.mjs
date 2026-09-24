@@ -22,7 +22,7 @@ function expect(actual) {
   }
 }
 
-test('text slot 基本路径与混合静态文本', () => {
+test('text slot basic path and mixed static text', () => {
   const result = parseTemplate('test', 'Hi {{ user.name }}!')
   assert.strictEqual(result.slots.length, 1)
   assert.deepEqual(result.slots[0], { kind: 'text', nodeId: 0, partIndex: 1 })
@@ -33,7 +33,7 @@ test('text slot 基本路径与混合静态文本', () => {
   ])
 })
 
-test('attr 槽整值绑定', () => {
+test('attr whole-value binding', () => {
   const result = parseTemplate('test', '<input value="{{ form.name }}">')
   assert.strictEqual(result.slots.length, 1)
   assert.deepEqual(result.slots[0], { kind: 'attr', nodeId: 0, attr: 'value', path: ['form', 'name'] })
@@ -41,7 +41,7 @@ test('attr 槽整值绑定', () => {
   assert.deepEqual(result.root.dynAttrs, { value: [{ path: ['form', 'name'] }] })
 })
 
-test('bool 槽布尔属性集', () => {
+test('bool boolean attribute set', () => {
   const result = parseTemplate('test', '<input disabled="{{ isDisabled }}">')
   assert.strictEqual(result.slots.length, 1)
   assert.deepEqual(result.slots[0], { kind: 'bool', nodeId: 0, attr: 'disabled', path: ['isDisabled'] })
@@ -49,11 +49,11 @@ test('bool 槽布尔属性集', () => {
   assert.deepEqual(result.root.dynAttrs, { disabled: [{ path: ['isDisabled'] }] })
 })
 
-test('非整值属性抛错', () => {
+test('non-whole-value attribute throws', () => {
   assert.throws(() => parseTemplate('test', '<input class="{{ c }} {{ d }}">'), { message: '[yq:parse] attribute binding only supports whole value form: class="{{ c }} {{ d }}"' })
 })
 
-test('list 槽完整语法', () => {
+test('list slot full syntax', () => {
   const result = parseTemplate('test', '<ul><li yq-for="p in products" yq-key="id">{{ p.name }}</li></ul>')
   assert.strictEqual(result.slots.length, 2)
   assert.deepEqual(result.slots[0], { kind: 'list', nodeId: 1, itemVar: 'p', indexVar: null, itemsPath: ['products'], keyProp: 'id' })
@@ -61,32 +61,37 @@ test('list 槽完整语法', () => {
   assert.deepEqual(result.root.children[0].list, { itemVar: 'p', indexVar: null, itemsPath: ['products'], keyProp: 'id' })
 })
 
-test('list 省略写法', () => {
+test('list shorthand form', () => {
   const result = parseTemplate('test', '<div yq-for="products"></div>')
   assert.strictEqual(result.slots.length, 1)
   assert.deepEqual(result.slots[0], { kind: 'list', nodeId: 0, itemVar: 'item', indexVar: null, itemsPath: ['products'], keyProp: null })
 })
 
-test('列表内嵌套列表抛错', () => {
-  assert.throws(() => parseTemplate('test', '<div yq-for="a in items"><div yq-for="b in a"></div></div>'), { message: '[yq:parse] test: nested yq-for not allowed' })
+test('nested yq-for inside a keyed row is parsed', () => {
+  const result = parseTemplate('test', '<div yq-for="a in items"><div yq-for="b in a"></div></div>')
+  const listSlots = result.slots.filter((slot) => slot.kind === 'list')
+  assert.strictEqual(listSlots.length, 2)
+  assert.deepEqual(listSlots[0], { kind: 'list', nodeId: 0, itemVar: 'a', indexVar: null, itemsPath: ['items'], keyProp: null })
+  assert.deepEqual(listSlots[1], { kind: 'list', nodeId: 1, itemVar: 'b', indexVar: null, itemsPath: ['a'], keyProp: null })
+  assert.deepEqual(result.root.children[0].list, { itemVar: 'b', indexVar: null, itemsPath: ['a'], keyProp: null })
 })
 
-test('多根抛错', () => {
+test('multiple root elements throw', () => {
   const result = parseTemplate('test', '<a></a><b></b>')
   assert.strictEqual(result.nodes.length, 2)
   assert.strictEqual(result.nodes[0].tag, 'a')
   assert.strictEqual(result.nodes[1].tag, 'b')
 })
 
-test('空模板抛错', () => {
+test('empty template throws', () => {
   assert.throws(() => parseTemplate('test', ''), { message: '[yq:parse] test: empty template' })
 })
 
-test('标签不闭合与不匹配', () => {
+test('unclosed and mismatched tags', () => {
   assert.throws(() => parseTemplate('test', '<div><span></div>'), { message: '[yq:parse] test: unclosed tag: span' })
 })
 
-test('void 与自闭合', () => {
+test('void and self-closing tags', () => {
   const result = parseTemplate('test', '<img src="a.png"><br>')
   assert.strictEqual(result.nodes.length, 2)
   assert.strictEqual(result.nodes[0].tag, 'img')
@@ -95,41 +100,41 @@ test('void 与自闭合', () => {
   assert.strictEqual(result.nodes[1].children.length, 0)
 })
 
-test('实体解码', () => {
+test('entity decoding', () => {
   const result = parseTemplate('test', 'A &amp; B &lt; C')
   assert.deepEqual(result.root.text, [{ static: 'A & B < C' }])
 })
 
-test('style 原样保留', () => {
+test('style preserved as-is', () => {
   const style = 'p { margin: 0 } .c { color: red }'
   const result = parseTemplate('test', '<div></div>')
   const cdo = { name: 'test', root: result.root, nodes: result.nodes, styleText: style, scriptFactory: null, slots: result.slots }
   assert.strictEqual(cdo.styleText, style)
 })
 
-test('script 函数路径 factory 返回同一函数', () => {
+test('script function-path factory returns same function', () => {
   const script = function() { return 42 }
   const factory = createScriptFactory(script)
   assert.strictEqual(factory(), script)
 })
 
-test('script 字符串路径编译', () => {
+test('script string-path compiles', () => {
   const factory = createScriptFactory('1')
   assert.strictEqual(factory(), 1)
   assert.throws(() => createScriptFactory('invalid syntax('), SyntaxError)
 })
 
-test('script null 处理', () => {
+test('script null handling', () => {
   const factory = createScriptFactory(null)
   assert.strictEqual(factory, null)
 })
 
-test('script 非法类型返回 null', () => {
+test('script invalid type returns null', () => {
   const factory = createScriptFactory(123)
   assert.strictEqual(factory, null)
 })
 
-test('define 解析一次缓存 & 多实例复用同一 CDO', async () => {
+test('define parses once and caches, multiple instances share one CDO', async () => {
   const { define, lookup } = await import('../dist/core.mjs')
   const definition = { template: '<div>{{ x }}</div>', style: 'div { color: red }', script: null }
   define('test', definition)
@@ -142,14 +147,14 @@ test('define 解析一次缓存 & 多实例复用同一 CDO', async () => {
   assert.strictEqual(result1.cdo, result2.cdo)
 })
 
-test('dynAttrs 与 yq-for 不入 staticAttrs', () => {
+test('dynAttrs and yq-for are excluded from staticAttrs', () => {
   const result = parseTemplate('test', '<div yq-for="items" yq-key="id" class="static">{{ item.name }}</div>')
   assert.deepEqual(result.root.staticAttrs, { class: 'static' })
   assert.deepEqual(result.root.dynAttrs, {})
   assert.deepEqual(result.root.list, { itemVar: 'item', indexVar: null, itemsPath: ['items'], keyProp: 'id' })
 })
 
-test('错误消息前缀', () => {
+test('error message prefix', () => {
   const cases = [
     () => parseTemplate('test', '<div yq-for="a in items"><div yq-for="b in a"></div></div>'),
     () => parseTemplate('test', '<a></a><b></b>'),
@@ -167,13 +172,13 @@ test('错误消息前缀', () => {
   })
 })
 
-test('路径解析错误', () => {
+test('path parsing errors', () => {
   assert.throws(() => parseTemplate('test', '<div>{{ . }}</div>'), { message: '[yq:parse] invalid path: .' })
   assert.throws(() => parseTemplate('test', '<div>{{ user. }}</div>'), { message: '[yq:parse] invalid path: user.' })
   assert.throws(() => parseTemplate('test', '<div>{{ .name }}</div>'), { message: '[yq:parse] invalid path: .name' })
 })
 
-test('文本节点空白静态段保留', () => {
+test('text node whitespace static segments preserved', () => {
   const result = parseTemplate('test', '<div>   {{ x }}   </div>')
   assert.deepEqual(result.root.text, [
     { static: '   ' },
@@ -182,7 +187,7 @@ test('文本节点空白静态段保留', () => {
   ])
 })
 
-test('混合静态文本与多个表达式', () => {
+test('mixed static text with multiple expressions', () => {
   const result = parseTemplate('test', 'Hello {{ user.name }}, your score is {{ user.score }}!')
   assert.strictEqual(result.slots.length, 2)
   assert.deepEqual(result.slots[0], { kind: 'text', nodeId: 0, partIndex: 1 })
@@ -196,33 +201,33 @@ test('混合静态文本与多个表达式', () => {
   ])
 })
 
-test('数字路径段', () => {
+test('numeric path segment', () => {
   const result = parseTemplate('test', '<div>{{ items.0.name }}</div>')
   assert.strictEqual(result.slots.length, 1)
   assert.deepEqual(result.slots[0], { kind: 'text', nodeId: 0, partIndex: 0 })
   assert.deepEqual(result.root.text, [{ path: ['items', '0', 'name'] }])
 })
 
-test('布尔属性值绑定', () => {
+test('boolean attribute value binding', () => {
   const result = parseTemplate('test', '<input checked="{{ isChecked }}">')
   assert.strictEqual(result.slots.length, 1)
   assert.deepEqual(result.slots[0], { kind: 'bool', nodeId: 0, attr: 'checked', path: ['isChecked'] })
 })
 
-test('非布尔属性值绑定', () => {
+test('non-boolean attribute value binding', () => {
   const result = parseTemplate('test', '<input value="{{ form.input }}">')
   assert.strictEqual(result.slots.length, 1)
   assert.deepEqual(result.slots[0], { kind: 'attr', nodeId: 0, attr: 'value', path: ['form', 'input'] })
 })
 
-test('嵌套元素文本槽', () => {
+test('nested element text slot', () => {
   const result = parseTemplate('test', '<div><span>{{ user.name }}</span></div>')
   assert.strictEqual(result.slots.length, 1)
   assert.deepEqual(result.slots[0], { kind: 'text', nodeId: 1, partIndex: 0 })
   assert.deepEqual(result.root.children[0].text, [{ path: ['user', 'name'] }])
 })
 
-test('多个属性绑定', () => {
+test('multiple attribute bindings', () => {
   const result = parseTemplate('test', '<input value="{{ form.name }}" placeholder="{{ form.placeholder }}">')
   assert.strictEqual(result.slots.length, 2)
   assert.deepEqual(result.slots[0], { kind: 'attr', nodeId: 0, attr: 'value', path: ['form', 'name'] })
@@ -233,7 +238,7 @@ test('多个属性绑定', () => {
   })
 })
 
-test('混合静态和动态属性', () => {
+test('mixed static and dynamic attributes', () => {
   const result = parseTemplate('test', '<input class="static" value="{{ form.name }}">')
   assert.strictEqual(result.slots.length, 1)
   assert.deepEqual(result.slots[0], { kind: 'attr', nodeId: 0, attr: 'value', path: ['form', 'name'] })
@@ -241,11 +246,11 @@ test('混合静态和动态属性', () => {
   assert.deepEqual(result.root.dynAttrs, { value: [{ path: ['form', 'name'] }] })
 })
 
-test('空表达式抛错', () => {
+test('empty expression throws', () => {
   assert.throws(() => parseTemplate('test', '<div>{{ }}</div>'), { message: '[yq:parse] empty expression in {{ }}' })
 })
 
-test('复杂嵌套结构', () => {
+test('complex nested structure', () => {
   const result = parseTemplate('test', '<div class="container"><h1>{{ title }}</h1><p>{{ content }}</p></div>')
   assert.strictEqual(result.slots.length, 2)
   assert.deepEqual(result.slots[0], { kind: 'text', nodeId: 1, partIndex: 0 })
@@ -255,7 +260,7 @@ test('复杂嵌套结构', () => {
   assert.deepEqual(result.root.children[1].text, [{ path: ['content'] }])
 })
 
-test('复杂文本混合', () => {
+test('complex text mixing', () => {
   const result = parseTemplate('test', 'Total: ${{ price }} (tax: ${{ tax }})')
   assert.strictEqual(result.slots.length, 2)
   assert.deepEqual(result.slots[0], { kind: 'text', nodeId: 0, partIndex: 1 })
@@ -269,33 +274,33 @@ test('复杂文本混合', () => {
   ])
 })
 
-test('重复定义抛错', async () => {
+test('duplicate definition throws', async () => {
   const { define } = await import('../dist/core.mjs')
   const definition = { template: '<div></div>', style: 'div {}', script: null }
   define('dup-test', definition)
   assert.throws(() => define('dup-test', definition), { message: 'duplicate component definition: dup-test' })
 })
 
-test('模板前后空白处理', () => {
+test('template leading and trailing whitespace', () => {
   const result = parseTemplate('test', '  <div>{{ x }}</div>  ')
   assert.strictEqual(result.root.tag, 'div')
   assert.deepEqual(result.root.text, [{ path: ['x'] }])
 })
 
-test('根元素为 void 标签', () => {
+test('root element is a void tag', () => {
   const result = parseTemplate('test', '<img src="test.png">')
   assert.strictEqual(result.root.tag, 'img')
   assert.strictEqual(result.root.children.length, 0)
 })
 
-test('带属性的void元素', () => {
+test('void element with attributes', () => {
   const result = parseTemplate('test', '<img src="test.png" alt="test">')
   assert.strictEqual(result.root.tag, 'img')
   assert.deepEqual(result.root.staticAttrs, { src: 'test.png', alt: 'test' })
   assert.strictEqual(result.root.children.length, 0)
 })
 
-test('带动态属性的void元素', () => {
+test('void element with dynamic attributes', () => {
   const result = parseTemplate('test', '<img src="{{ image.src }}" alt="{{ image.alt }}">')
   assert.strictEqual(result.slots.length, 2)
   assert.deepEqual(result.slots[0], { kind: 'attr', nodeId: 0, attr: 'src', path: ['image', 'src'] })
@@ -303,13 +308,13 @@ test('带动态属性的void元素', () => {
   assert.deepEqual(result.root.dynAttrs, { src: [{ path: ['image', 'src'] }], alt: [{ path: ['image', 'alt'] }] })
 })
 
-test('带布尔属性的void元素', () => {
+test('void element with boolean attribute', () => {
   const result = parseTemplate('test', '<input disabled="{{ isDisabled }}">')
   assert.strictEqual(result.slots.length, 1)
   assert.deepEqual(result.slots[0], { kind: 'bool', nodeId: 0, attr: 'disabled', path: ['isDisabled'] })
 })
 
-test('复杂文本混合带多个表达式', () => {
+test('complex text mixing with multiple expressions', () => {
   const result = parseTemplate('test', 'Total: ${{ price }} (tax: ${{ tax }}) - Discount: ${{ discount }}')
   assert.strictEqual(result.slots.length, 3)
   assert.deepEqual(result.slots[0], { kind: 'text', nodeId: 0, partIndex: 1 })
@@ -349,38 +354,52 @@ test('yq-for keeps a single item variable when no row binding is used', () => {
   assert.deepEqual(listSlot, { kind: 'list', nodeId: 0, itemVar: 'entry', indexVar: null, itemsPath: ['entries'], keyProp: null })
 })
 
-test('带嵌套列表的错误处理', () => {
-  assert.throws(() => parseTemplate('test', '<div yq-for="a in items"><div yq-for="b in a"></div></div>'), { message: '[yq:parse] test: nested yq-for not allowed' })
+test('a nested list keeps its own yq-key', () => {
+  const result = parseTemplate('test', '<ul yq-for="group in groups" yq-key="id"><li yq-for="row in group.rows" yq-key="sku"></li></ul>')
+  const listSlots = result.slots.filter((slot) => slot.kind === 'list')
+  assert.strictEqual(listSlots.length, 2)
+  assert.strictEqual(listSlots[0].keyProp, 'id')
+  assert.strictEqual(listSlots[1].keyProp, 'sku')
+  assert(!('yq-key' in result.root.staticAttrs))
+  assert(!('yq-key' in result.root.children[0].staticAttrs))
 })
 
-test('带多个属性的错误处理', () => {
+test('nested lists three levels deep are parsed', () => {
+  const result = parseTemplate('test', '<a yq-for="x in xs"><b yq-for="y in ys"><c yq-for="z in zs"></c></b></a>')
+  const listSlots = result.slots.filter((slot) => slot.kind === 'list')
+  assert.strictEqual(listSlots.length, 3)
+  assert.deepEqual(listSlots.map((slot) => slot.nodeId), [0, 1, 2])
+  assert.deepEqual(listSlots.map((slot) => slot.itemVar), ['x', 'y', 'z'])
+})
+
+test('error handling with multiple attributes', () => {
   assert.throws(() => parseTemplate('test', '<input class="{{ c }} {{ d }}">'), { message: '[yq:parse] attribute binding only supports whole value form: class="{{ c }} {{ d }}"' })
 })
 
-test('带复杂嵌套结构的错误处理', () => {
+test('error handling with complex nested structure', () => {
   assert.throws(() => parseTemplate('test', '<div><span></div>'), { message: '[yq:parse] test: unclosed tag: span' })
 })
 
-test('带多个根元素的错误处理', () => {
+test('error handling with multiple root elements', () => {
   const result = parseTemplate('test', '<a></a><b></b>')
   assert.strictEqual(result.nodes.length, 2)
 })
 
-test('空模板的错误处理', () => {
+test('error handling for empty template', () => {
   assert.throws(() => parseTemplate('test', ''), { message: '[yq:parse] test: empty template' })
 })
 
-test('带空表达式的错误处理', () => {
+test('error handling for empty expression', () => {
   assert.throws(() => parseTemplate('test', '<div>{{ }}</div>'), { message: '[yq:parse] empty expression in {{ }}' })
 })
 
-test('带无效路径的错误处理', () => {
+test('error handling for invalid path', () => {
   assert.throws(() => parseTemplate('test', '<div>{{ . }}</div>'), { message: '[yq:parse] invalid path: .' })
   assert.throws(() => parseTemplate('test', '<div>{{ user. }}</div>'), { message: '[yq:parse] invalid path: user.' })
   assert.throws(() => parseTemplate('test', '<div>{{ .name }}</div>'), { message: '[yq:parse] invalid path: .name' })
 })
 
-test('带多个属性的正确处理', () => {
+test('correct handling with multiple attributes', () => {
   const result = parseTemplate('test', '<input value="{{ form.name }}" placeholder="{{ form.placeholder }}">')
   assert.strictEqual(result.slots.length, 2)
   assert.deepEqual(result.slots[0], { kind: 'attr', nodeId: 0, attr: 'value', path: ['form', 'name'] })
@@ -391,7 +410,7 @@ test('带多个属性的正确处理', () => {
   })
 })
 
-test('带混合静态和动态属性的正确处理', () => {
+test('correct handling with mixed static and dynamic attributes', () => {
   const result = parseTemplate('test', '<input class="static" value="{{ form.name }}">')
   assert.strictEqual(result.slots.length, 1)
   assert.deepEqual(result.slots[0], { kind: 'attr', nodeId: 0, attr: 'value', path: ['form', 'name'] })
@@ -399,7 +418,7 @@ test('带混合静态和动态属性的正确处理', () => {
   assert.deepEqual(result.root.dynAttrs, { value: [{ path: ['form', 'name'] }] })
 })
 
-test('带复杂文本混合的正确处理', () => {
+test('correct handling of complex text mixing', () => {
   const result = parseTemplate('test', 'Total: ${{ price }} (tax: ${{ tax }})')
   assert.strictEqual(result.slots.length, 2)
   assert.deepEqual(result.slots[0], { kind: 'text', nodeId: 0, partIndex: 1 })
@@ -413,7 +432,7 @@ test('带复杂文本混合的正确处理', () => {
   ])
 })
 
-test('带复杂文本混合的正确处理', () => {
+test('correct handling of complex text mixing with multiple expressions', () => {
   const result = parseTemplate('test', 'Total: ${{ price }} (tax: ${{ tax }}) - Discount: ${{ discount }}')
   assert.strictEqual(result.slots.length, 3)
   assert.deepEqual(result.slots[0], { kind: 'text', nodeId: 0, partIndex: 1 })
