@@ -10,10 +10,11 @@
   "scripts": {
     "build": "esbuild packages/core/src/index.ts --bundle --minify --format=esm --target=es2019 --outfile=packages/core/dist/core.mjs && esbuild packages/core/src/index.ts --bundle --minify --format=iife --global-name=yq --target=es2019 --outfile=packages/core/dist/core.global.js && esbuild packages/devtools/src/index.ts --bundle --minify --format=esm --target=es2019 --outfile=packages/devtools/dist/devtools.mjs",
     "typecheck": "tsc --noEmit",
-    "pretest": "npm run build",
+    "pretest": "npm run build && npm run check:docs-links",
     "test": "node --test packages/core/test/*.test.mjs",
     "bench": "node bench/bench.mjs",
     "check:perf": "node bench/bench.mjs",
+    "check:docs-links": "node scripts/check-docs-links.mjs",
     "check:all": "node scripts/check-deps.mjs && node scripts/check-gzip.mjs && node scripts/check-no-comments.mjs && npm run check:perf",
     "ci:all": "npm run build && npm run typecheck && npm run test && npm run check:all",
     "serve": "node scripts/serve.mjs"
