@@ -11,7 +11,7 @@
     "build": "esbuild packages/core/src/index.ts --bundle --minify --format=esm --target=es2019 --outfile=packages/core/dist/core.mjs && esbuild packages/core/src/index.ts --bundle --minify --format=iife --global-name=yq --target=es2019 --outfile=packages/core/dist/core.global.js && esbuild packages/devtools/src/index.ts --bundle --minify --format=esm --target=es2019 --outfile=packages/devtools/dist/devtools.mjs",
     "typecheck": "tsc --noEmit",
     "pretest": "npm run build",
-    "test": "node --test packages/core/test/*.test.mjs",
+    "test": "node --test packages/core/test/*.test.mjs packages/cli/test/*.test.mjs",
     "bench": "node bench/bench.mjs",
     "check:perf": "node bench/bench.mjs",
     "check:all": "node scripts/check-deps.mjs && node scripts/check-gzip.mjs && node scripts/check-no-comments.mjs && npm run check:perf",
