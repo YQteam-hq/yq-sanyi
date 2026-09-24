@@ -161,9 +161,9 @@ packages/core/src      core runtime: registry, parser, reactive, render, scoper,
 packages/core/dist     built bundles (core.mjs, core.global.js)
 packages/core/test     node:test assertion suite
 packages/devtools      optional debug panel (separate bundle)
-bench/                 performance harness: first-interactive, update-latency, scroll-fps
+bench/                 performance harness: first-interactive, update-latency, scroll-fps, scroll-frame-ops
 examples/              runnable HTML demos
-docs/                  tutorials
+docs/                  tutorials and guides
 scripts/               repo gates: dependency graph and bundle-size checks
 ```
 
@@ -183,19 +183,21 @@ npm run check:all
 
 ## Performance gate
 
-`npm run bench` measures three budgets and exits non-zero as soon as one of them is missed, so a merge cannot land a rendering regression. CI runs it as part of `npm run check:all`, which is the `Repo gates` step of the required `Build / Typecheck / Test` check.
+`npm run bench` measures four budgets and exits non-zero as soon as one of them is missed, so a merge cannot land a rendering regression. CI runs it as part of `npm run check:all`, which is the `Repo gates` step of the required `Build / Typecheck / Test` check.
 
 | Metric | Budget | What is measured |
 | --- | --- | --- |
-| `first-interactive` | `<= 1000 ms` | Cold boot of a 3000-row board: `define` plus template parsing, mounting, the first animation frame, and a click that has to reach the DOM. Reported as the p95 of 10 runs, after 2 warm-up runs. |
-| `update-latency` | `<= 200 ms` | Time from a state write that replaces all 3000 rows to the moment the DOM shows the new revision. Reported as the p95 of 60 updates, after 10 warm-up updates. |
-| `scroll-fps` | `>= 55 fps` | Scroll frames over a 2000-row list with a 200-row window that advances 4 rows per frame. The p95 main-thread cost of one frame is converted into the frame rate a 60 Hz display sustains (`1000 / p95`, capped at 60). |
+| `first-interactive` | `<= 1000 ms` | Cold boot of a 3000-row board: `define` plus template parsing, mounting, the first animation frame, and a click that has to reach the DOM. Asserted on the p50 of 10 runs, after 2 warm-up runs. |
+| `update-latency` | `<= 200 ms` | Time from a state write that replaces all 3000 rows to the moment the DOM shows the new revision. Asserted on the p50 of 60 updates, after 10 warm-up updates. |
+| `scroll-fps` | `>= 55 fps` | Scroll frames over a 2000-row list with a 200-row window that advances 4 rows per frame. The p50 cost of one frame is converted into `1000 / p50`, uncapped, so a faster result keeps reading faster. |
+| `scroll-frame-ops` | `<= 900 ops/frame` | DOM mutations the renderer issues to advance that window by one frame. Counted instead of timed, so it does not depend on machine load. |
 
-Three things are worth knowing about the harness:
+Four things are worth knowing about the harness:
 
 - It is pure Node and keeps the zero-dependency rule. It installs a small headless DOM, then drives the real render pipeline and reads the real DOM back, so a browser is never required.
-- `scroll-fps` is derived from the measured main-thread cost instead of a wall-clock frame loop. A busy CI runner can therefore not turn timer jitter into a false failure, and the reported `frame p50` / `frame p95` values stay comparable between machines against the 16.67 ms budget of one 60 Hz frame.
-- The workloads are sized to leave roughly 3x to 6x headroom on a normal runner, so the gate reacts to real regressions rather than to noise.
+- Wall-clock metrics assert the typical p50 sample, and print the p95 tail plus the run-to-run spread as diagnostics. The work behind one scroll frame is exactly constant at 705 DOM operations while its measured cost spans 2.4 ms to 103.7 ms across frames, so a p95 verdict samples host noise rather than rendering. [docs/performance.md](./docs/performance.md) carries the numbers.
+- `scroll-frame-ops` is the load-independent gate: a fast laptop and a busy CI runner report the same count, so it catches a regression that timing alone cannot resolve.
+- The workloads are sized to leave headroom on a normal runner, so the gate reacts to real regressions rather than to noise.
 
 ## Support
 

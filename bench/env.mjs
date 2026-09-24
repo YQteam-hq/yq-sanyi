@@ -2,6 +2,48 @@ import { performance } from 'node:perf_hooks'
 
 const FRAME_MS = 16
 
+const RENDER_OP_KEYS = ['created', 'attribute', 'attributeRemoved', 'inserted', 'removed', 'text', 'listener']
+
+const renderOps = {
+  created: 0,
+  attribute: 0,
+  attributeRemoved: 0,
+  inserted: 0,
+  removed: 0,
+  text: 0,
+  listener: 0
+}
+
+let opCountingEnabled = false
+
+function enableRenderOpCounting(enabled) {
+  opCountingEnabled = Boolean(enabled)
+  resetRenderOps()
+}
+
+function resetRenderOps() {
+  for (const key of RENDER_OP_KEYS) {
+    renderOps[key] = 0
+  }
+}
+
+function readRenderOps() {
+  const snapshot = {}
+  for (const key of RENDER_OP_KEYS) {
+    snapshot[key] = renderOps[key]
+  }
+  return snapshot
+}
+
+function totalRenderOps(snapshot) {
+  const bag = snapshot || renderOps
+  let total = 0
+  for (const key of RENDER_OP_KEYS) {
+    total += bag[key]
+  }
+  return total
+}
+
 function toCamelCase(name) {
   return name.replace(/-([a-z])/g, function (match, letter) {
     return letter.toUpperCase()
@@ -9,6 +51,9 @@ function toCamelCase(name) {
 }
 
 function createElement(tag) {
+  if (opCountingEnabled) {
+    renderOps.created++
+  }
   const element = {
     tagName: String(tag).toUpperCase(),
     attrs: {},
@@ -17,10 +62,12 @@ function createElement(tag) {
     classList: { add() {}, remove() {}, contains() { return false } },
     children: [],
     listeners: {},
-    textContent: '',
     isConnected: false,
     parentElement: null,
     setAttribute(name, value) {
+      if (opCountingEnabled) {
+        renderOps.attribute++
+      }
       element.attrs[name] = String(value)
       if (name.startsWith('data-')) {
         element.dataset[toCamelCase(name.slice(5))] = String(value)
@@ -30,7 +77,12 @@ function createElement(tag) {
       return Object.prototype.hasOwnProperty.call(element.attrs, name) ? element.attrs[name] : null
     },
     removeAttribute(name) {
-      delete element.attrs[name]
+      if (Object.prototype.hasOwnProperty.call(element.attrs, name)) {
+        if (opCountingEnabled) {
+          renderOps.attributeRemoved++
+        }
+        delete element.attrs[name]
+      }
     },
     hasAttribute(name) {
       return Object.prototype.hasOwnProperty.call(element.attrs, name)
@@ -42,6 +94,9 @@ function createElement(tag) {
         }
         return child
       }
+      if (opCountingEnabled) {
+        renderOps.inserted++
+      }
       element.children.push(child)
       child.parentElement = element
       return child
@@ -51,6 +106,9 @@ function createElement(tag) {
       if (index === -1) {
         return element.appendChild(node)
       }
+      if (opCountingEnabled) {
+        renderOps.inserted++
+      }
       element.children.splice(index, 0, node)
       node.parentElement = element
       return node
@@ -58,6 +116,9 @@ function createElement(tag) {
     removeChild(child) {
       const index = element.children.indexOf(child)
       if (index > -1) {
+        if (opCountingEnabled) {
+          renderOps.removed++
+        }
         element.children.splice(index, 1)
         child.parentElement = null
       }
@@ -84,6 +145,9 @@ function createElement(tag) {
       return clone
     },
     addEventListener(type, listener) {
+      if (opCountingEnabled) {
+        renderOps.listener++
+      }
       element.listeners[type] = element.listeners[type] || []
       element.listeners[type].push(listener)
     },
@@ -111,6 +175,20 @@ function createElement(tag) {
       return []
     }
   }
+  let text = ''
+  Object.defineProperty(element, 'textContent', {
+    get() {
+      return text
+    },
+    set(value) {
+      if (opCountingEnabled) {
+        renderOps.text++
+      }
+      text = value
+    },
+    enumerable: true,
+    configurable: true
+  })
   let html = ''
   Object.defineProperty(element, 'innerHTML', {
     get() {
@@ -249,4 +327,14 @@ function mountHost(tag) {
   return host
 }
 
-export { installEnv, mountHost, nextFrame, now, FRAME_MS }
+export {
+  installEnv,
+  mountHost,
+  nextFrame,
+  now,
+  enableRenderOpCounting,
+  resetRenderOps,
+  readRenderOps,
+  totalRenderOps,
+  FRAME_MS
+}
