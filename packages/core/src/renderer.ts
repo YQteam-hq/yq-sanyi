@@ -456,35 +456,37 @@ function bindRowEvents(cdo: Cdo, containerNode: SNode, rowElement: Element, rowC
 }
 
 function fillListRow(cdo: Cdo, containerNode: SNode, rowElement: Element, itemState: Record<string, any>, bindings?: RowEventBindings): void {
-  const rowIds = new Set<number>()
-  collectSubtreeIds(containerNode, rowIds)
-  const rowContext = createRenderContext(itemState, cdo.slots)
+  const rowContext = createRenderContext(itemState, cdo.slots, bindings)
+  const containerIds = new Set<number>()
+  collectSubtreeIds(containerNode, containerIds)
   const rowCache = new Map<number, Element>()
-  function indexRow(element: Element): void {
+  const indexRow = (element: Element): void => {
     if (isNestedInstanceHost(element)) return
     const dataset = (element as HTMLElement).dataset
     if (dataset && dataset.yqNodeId) {
-      rowCache.set(parseInt(dataset.yqNodeId || '0', 10), element)
+      const nodeId = parseInt(dataset.yqNodeId || '0', 10)
+      if (!rowCache.has(nodeId)) rowCache.set(nodeId, element)
     }
     for (const child of Array.from(element.children)) {
       indexRow(child)
     }
   }
   indexRow(rowElement)
-  for (const childSlot of cdo.slots) {
-    if (childSlot.kind === 'list') continue
-    if (childSlot.kind === 'event') continue
-    if (!rowIds.has(childSlot.nodeId)) continue
-    if (childSlot.nodeId === containerNode.id && childSlot.kind === 'text' && containerNode.children.length > 0) continue
-    const target = childSlot.nodeId === containerNode.id ? rowElement : rowCache.get(childSlot.nodeId)
+  for (const slot of cdo.slots) {
+    if (slot.kind === 'event') continue
+    if (!containerIds.has(slot.nodeId)) continue
+    if (slot.kind === 'list') continue
+    if (slot.nodeId === containerNode.id && slot.kind === 'text' && containerNode.children.length > 0) continue
+    const target = slot.nodeId === containerNode.id ? rowElement : rowCache.get(slot.nodeId)
     if (!target) continue
-    if (childSlot.kind === 'text') {
-      fillTextSlot(target, childSlot, rowContext, cdo)
-    } else if (childSlot.kind === 'attr') {
-      fillAttrSlot(target, childSlot, rowContext)
-    } else if (childSlot.kind === 'bool') {
-      fillBoolSlot(target, childSlot, rowContext)
-    }
+    if (slot.kind === 'text') fillTextSlot(target, slot, rowContext, cdo)
+    else if (slot.kind === 'attr') fillAttrSlot(target, slot, rowContext)
+    else if (slot.kind === 'bool') fillBoolSlot(target, slot, rowContext)
+  }
+  for (const slot of cdo.slots) {
+    if (slot.kind !== 'list' || slot.nodeId === containerNode.id || !containerIds.has(slot.nodeId)) continue
+    const target = rowCache.get(slot.nodeId)
+    if (target) renderList(cdo, target, slot, rowContext)
   }
   if (bindings) {
     bindRowEvents(cdo, containerNode, rowElement, rowCache, itemState, bindings)
@@ -604,6 +606,7 @@ function belongsToListItem(cdo: Cdo, nodeId: number): boolean {
     if (slot.kind !== 'list') continue
     const containerNode = findNode(cdo, slot.nodeId)
     if (!containerNode) continue
+    if (containerNode.id === nodeId) continue
     const rowIds = new Set<number>()
     collectSubtreeIds(containerNode, rowIds)
     if (rowIds.has(nodeId)) return true
@@ -850,7 +853,7 @@ function fillSlots(cdo: Cdo, context: RenderContext, instance?: ComponentInstanc
   processConditions(cdo, context)
 
   for (const slot of cdo.slots) {
-    if (slot.kind !== 'list' && belongsToListItem(cdo, slot.nodeId)) continue
+    if (belongsToListItem(cdo, slot.nodeId)) continue
     const node = cache.get(slot.nodeId)
     if (!node) continue
 
