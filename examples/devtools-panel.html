@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>yq-sanyi devtools panel example</title>
+<style>
+body { font-family: system-ui, sans-serif; max-width: 44rem; margin: 2rem auto; padding: 0 1rem; color: #1e293b; }
+h1 { font-size: 1.5rem; }
+p.note { color: #64748b; font-size: 0.9rem; }
+kbd { border: 1px solid #cbd5e1; border-radius: 4px; padding: 0 4px; background: #f8fafc; font-size: 0.85rem; }
+yq-counter, yq-todo { display: block; margin: 1rem 0; }
+button { font: inherit; padding: 4px 12px; border: 1px solid #6366f1; border-radius: 6px; background: #6366f1; color: #fff; cursor: pointer; }
+pre { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; }
+</style>
+</head>
+<body>
+<h1>yq-sanyi devtools panel</h1>
+<p>Press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Y</kbd> to toggle the panel, drag it by its header, and filter the update log in the Logs tab.</p>
+
+<yq-counter></yq-counter>
+<yq-todo></yq-todo>
+
+<p>
+  <button id="snapshot">export snapshot</button>
+  <button id="warn">log a warning</button>
+  <button id="boom">log an error</button>
+</p>
+<pre id="out">the exported snapshot and any captured console output land here</pre>
+
+<script src="../packages/core/dist/core.global.js"></script>
+<script type="module">
+import { attachDevtools } from '../packages/devtools/dist/devtools.mjs'
+
+yq.define('yq-counter', {
+  template: '<div class="box"><b>{{ clicks }}</b> clicks<button yq-on:click="inc">+1</button><button yq-on:click="reset">reset</button></div>',
+  style: '.box { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-family: inherit; }',
+  script: function () {
+    return {
+      state: { clicks: 0 },
+      inc: function (state) {
+        state.clicks = state.clicks + 1
+      },
+      reset: function (state) {
+        state.clicks = 0
+      }
+    }
+  }
+})
+
+yq.define('yq-todo', {
+  template: '<div class="box"><ul><li yq-for="item in items" yq-key="id">{{ item.label }}</li></ul><button yq-on:click="add">add item</button></div>',
+  style: '.box { padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-family: inherit; } ul { margin: 0 0 12px; padding-left: 20px; }',
+  script: function () {
+    let nextId = 3
+    return {
+      state: {
+        items: [
+          { id: 1, label: 'read the panel' },
+          { id: 2, label: 'drag the header' }
+        ]
+      },
+      add: function (state) {
+        nextId = nextId + 1
+        state.items = state.items.concat([{ id: nextId, label: 'item ' + nextId }])
+      }
+    }
+  }
+})
+
+const devtools = attachDevtools({ panel: { maxLogs: 25 } })
+
+function register(tag) {
+  const element = document.querySelector(tag)
+  const instance = element && element._yqInstance
+  if (instance) {
+    devtools.registerComponent(instance)
+  }
+}
+
+register('yq-counter')
+register('yq-todo')
+
+const out = document.getElementById('out')
+
+document.getElementById('snapshot').addEventListener('click', function () {
+  out.textContent = devtools.exportSnapshot().slice(0, 600)
+})
+
+document.getElementById('warn').addEventListener('click', function () {
+  console.warn('warning from the demo page')
+})
+
+document.getElementById('boom').addEventListener('click', function () {
+  console.error(new Error('error from the demo page'))
+})
+
+window.addEventListener('beforeunload', function () {
+  devtools.destroy()
+})
+</script>
+</body>
+</html>
