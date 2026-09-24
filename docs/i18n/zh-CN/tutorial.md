@@ -138,7 +138,7 @@ npm run serve
 </ul>
 ```
 
-`yq-key` 指定条目的稳定字段。行按 key 匹配并复用而非重建，能保留行内状态并最小化 DOM 写入。带 key 的行不要嵌套在另一个 `yq-for` 里——请把内层列表放进子组件渲染。
+`yq-key` 指定条目的稳定字段。行按 key 匹配并复用而非重建，能保留行内状态并最小化 DOM 写入。带 key 的行内可以再嵌一层 `yq-for`：内层列表按每个外层行各渲染一次，每一层都有自己的条目与下标，内层行既能读到自己持有的条目，也能读到包住它的那一行的条目。[examples/nested-for.html](../../../examples/nested-for.html) 就是用这种方式实现的树形菜单。
 
 ### 条件渲染
 
@@ -392,18 +392,62 @@ npm run serve
 </script>
 ```
 
-组件通过带 CSS 兜底的主题变量读取主题。通过 scoper 为整页换主题：
+### 作用域是怎么加上的
 
-```html
-<script>
-  yq.scoper.updateTheme({
-    'border-color': '#2563eb',
-    'text-muted': '#1e40af'
-  })
-</script>
+`define` 会为每个组件定义分配一个 scope id，`style` 字符串在进入页面之前就被改写：每个选择器都会附加作用域属性，`.panel` 变成 `.panel[data-yq-scope="..."]`，因此只能匹配框架标注了同一作用域的节点。有三条规则值得记住：
+
+- 以 `*` 开头的选择器原样保留，组件无法在无意间给整页加一条全局重置。
+- 伪类与伪元素仍附着在它们所修饰的选择器上，`.panel:hover` 变成 `.panel[data-yq-scope="..."]:hover`。
+- 改写后的规则集对每个定义只注入一次。第二个实例只是把引用计数加一，计数归零时 `<style>` 元素被移除——也就是最后一个实例卸载的时候。
+
+改写本身是纯函数，不挂载任何东西也能查看结果：
+
+```js
+const scoped = yq.scoper.generateScopedCSS('.panel { color: red; }', 'my-scope')
 ```
 
-页面级全局样式用 `yq.scoper.addGlobalStyle(css, id)` 显式注册，用 `removeGlobalStyle(id)` 移除。默认样式隔离采用作用域改写，CSS 变量与继承行为保持不变；需要强封装时可通过 `createScopedElement(..., { useShadowDOM: true })` 为组件开启 Shadow DOM。
+此时 `scoped` 的内容是 `.panel[data-yq-scope="my-scope"] { color: red; }`。`yq.scoper.injectStyle` 与 `yq.scoper.removeStyle` 暴露了运行时内部使用的注入生命周期，`injectStyle` 返回的记录会报告当前有多少实例持有这份样式。
+
+### 页面级样式
+
+只有定义里的 `style` 字段会被改写。需要作用于整页的规则要显式注册，并原样插入：
+
+```js
+yq.scoper.addGlobalStyle('.demo-note { padding: 12px; }', 'demo-note')
+yq.scoper.getGlobalStyles()
+yq.scoper.removeGlobalStyle('demo-note')
+yq.scoper.clearGlobalStyles()
+```
+
+id 可以省略，省略时注册表会用 `global-<timestamp>` 生成一个。`getGlobalStyles()` 返回注册表的副本，改动返回值不会影响页面。
+
+### 主题变量
+
+组件通过带 CSS 兜底的主题变量读取主题，因此在任何主题应用之前也能正常绘制。`updateTheme` 会把每一项写到 document 元素上的 `--yq-<key>` 自定义属性：
+
+```js
+yq.scoper.updateTheme({
+  'border-color': '#2563eb',
+  'text-muted': '#1e40af'
+})
+```
+
+读取这些变量的组件会一次全部重绘，无需改动任何组件代码。`getThemeVariables()` 返回当前的映射；`resetTheme()` 会清掉你设置的内容并应用内置调色板：
+
+| 变量 | 默认值 |
+| --- | --- |
+| `--yq-primary-color` | `#3b82f6` |
+| `--yq-secondary-color` | `#6b7280` |
+| `--yq-background-color` | `#ffffff` |
+| `--yq-text-color` | `#1f2937` |
+| `--yq-border-color` | `#e5e7eb` |
+| `--yq-shadow-color` | `rgba(0, 0, 0, 0.1)` |
+
+### 作用域改写与 Shadow DOM 的取舍
+
+默认采用作用域改写，CSS 变量与继承行为保持不变，运行时也不额外付出代价。需要强封装时，`createScopedElement(element, scopeId, { useShadowDOM: true })` 会挂上 shadow root、把副本移入其中，并给每个节点标上作用域属性。当组件不应被页面级选择器触达时选它；更看重主题与继承时保持默认即可。
+
+[examples/scoped-theme.html](../../../examples/scoped-theme.html) 把上面这些都串了起来：同一组件的两个实例共用一份样式注入，切换器通过 `updateTheme` 让两者一起重绘，页面级规则也可以注册后再移除。
 
 ## 响应式原语
 
@@ -533,6 +577,8 @@ npm run serve
 
 ## 下一步
 
-- 查看 [功能与 API 总览](../README.md)。
+- 查看 [功能与 API 总览](./README.md)。
 - 打开 `examples/full-demo.html`：一页演示标签、事件、列表与状态。
+- 打开 [examples/nested-for.html](../../../examples/nested-for.html)：用嵌套 `yq-for` 行搭建的可展开折叠树形菜单。
+- 打开 [examples/scoped-theme.html](../../../examples/scoped-theme.html)：作用域样式、主题变量与页面级样式注册表。
 - 阅读本教程的英文版：[English tutorial](../../tutorial.md)。

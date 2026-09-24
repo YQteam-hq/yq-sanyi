@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>yq-sanyi nested yq-for</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 6px;
+    }
+    p.lede {
+      margin: 0 0 24px;
+      color: #475569;
+    }
+    yq-tree-menu {
+      display: block;
+      padding: 20px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>A tree menu built from nested <code>yq-for</code> rows</h1>
+    <p class="lede">
+      The outer list renders one row per folder and the inner list renders the files held by that folder.
+      Each row keeps its own scope, so an inner row reads the file it holds and the folder around it at the
+      same time, and the expand state lives on the folder item itself.
+    </p>
+
+    <yq-tree-menu></yq-tree-menu>
+  </main>
+
+  <script src="../packages/core/dist/core.global.js"></script>
+  <script>
+    yq.define('yq-tree-menu', {
+      template: '<div class="tree"><div class="toolbar"><span class="summary">{{ summary }}</span><button yq-on:click="expandAll">expand all</button><button yq-on:click="collapseAll">collapse all</button></div><ul class="folders"><li class="folder" yq-for="folder in folders" yq-key="id"><div class="folder-row"><button class="twist" yq-on:click="toggle">{{ folder.marker }}</button><span class="folder-name">{{ folder.label }}</span><span class="file-count">{{ folder.fileCount }}</span></div><ul class="files" data-open="{{ folder.open }}"><li class="file" yq-for="file in folder.files" yq-key="path"><span class="file-path">{{ folder.label }}/{{ file.label }}</span><span class="file-size">{{ file.size }} kB</span><button class="pick" yq-on:click="pick">open</button></li></ul></li></ul><p class="picked">{{ picked }}</p></div>',
+      style: '.tree { font-size: 14px; } .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; } .summary { flex: 1; color: #475569; } button { padding: 4px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f1f5f9; cursor: pointer; } .folders, .files { list-style: none; margin: 0; padding: 0; } .folder-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; } .twist { width: 28px; font-weight: 700; } .folder-name { flex: 1; font-weight: 600; } .file-count { color: #94a3b8; font-size: 12px; } .files { display: none; padding-left: 36px; } .files[data-open="true"] { display: block; } .file { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f1f5f9; } .file-path { flex: 1; color: #334155; } .file-size { min-width: 58px; text-align: right; color: #94a3b8; font-size: 12px; } .picked { margin: 14px 0 0; color: #475569; }',
+      script: function () {
+        function seed() {
+          return [
+            {
+              id: 'core',
+              label: 'core',
+              open: true,
+              files: [
+                { path: 'core/src/index.ts', label: 'index.ts', size: 28.8 },
+                { path: 'core/src/renderer.ts', label: 'renderer.ts', size: 50.9 }
+              ]
+            },
+            {
+              id: 'devtools',
+              label: 'devtools',
+              open: false,
+              files: [{ path: 'devtools/src/index.ts', label: 'index.ts', size: 0.7 }]
+            },
+            {
+              id: 'docs',
+              label: 'docs',
+              open: true,
+              files: [
+                { path: 'docs/tutorial.md', label: 'tutorial.md', size: 21.5 },
+                { path: 'docs/i18n/zh-CN/tutorial.md', label: 'i18n/zh-CN/tutorial.md', size: 18.5 }
+              ]
+            }
+          ]
+        }
+        function decorate(folders) {
+          for (const folder of folders) {
+            folder.marker = folder.open ? '-' : '+'
+            folder.fileCount = folder.files.length + ' files'
+          }
+          return folders
+        }
+        function summarize(folders) {
+          let open = 0
+          for (const folder of folders) {
+            if (folder.open) open = open + 1
+          }
+          return open + ' of ' + folders.length + ' folders expanded'
+        }
+        const folders = decorate(seed())
+        return {
+          state: {
+            folders: folders,
+            summary: summarize(folders),
+            picked: 'no file opened yet'
+          },
+          toggle: function (state) {
+            state.folder.open = !state.folder.open
+            state.folder.marker = state.folder.open ? '-' : '+'
+            state.summary = summarize(state.folders)
+          },
+          expandAll: function (state) {
+            for (const folder of state.folders) {
+              folder.open = true
+              folder.marker = '-'
+            }
+            state.summary = summarize(state.folders)
+          },
+          collapseAll: function (state) {
+            for (const folder of state.folders) {
+              folder.open = false
+              folder.marker = '+'
+            }
+            state.summary = summarize(state.folders)
+          },
+          pick: function (state) {
+            state.picked = 'opened ' + state.folder.label + '/' + state.file.label + ' from the inner row'
+          }
+        }
+      }
+    })
+  </script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>yq-sanyi scoped styles and theming</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 6px;
+    }
+    p.lede {
+      margin: 0 0 20px;
+      color: #475569;
+    }
+    .price-tags {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Scoped styles and CSS variable theming</h1>
+    <p class="lede">
+      Both price tags below share one definition, so the framework injects their style once and removes it when the
+      last instance is gone. Everything they paint with comes from <code>--yq-*</code> variables, so the switcher can
+      repaint them without touching component code. Swap the last button to watch the page-level style registry, and
+      open the console to compare <code>yq.scoper.getGlobalStyles()</code> with the component styles in the document.
+    </p>
+
+    <div class="price-tags">
+      <yq-price-tag name="starter plan" price="19 USD"></yq-price-tag>
+      <yq-price-tag name="team plan" price="49 USD"></yq-price-tag>
+    </div>
+
+    <p class="demo-note">This paragraph is painted by a page-level style registered through the scoper.</p>
+
+    <yq-theme-switcher></yq-theme-switcher>
+  </main>
+
+  <script src="../packages/core/dist/core.global.js"></script>
+  <script>
+    const noteStyle = '.demo-note { padding: 12px 14px; border-radius: 8px; background: var(--yq-primary-color, #3b82f6); color: #f8fafc; }'
+
+    yq.scoper.addGlobalStyle(noteStyle, 'demo-note')
+    yq.scoper.resetTheme()
+
+    yq.define('yq-price-tag', {
+      template: '<div class="tag"><span class="name">{{ name }}</span><span class="price">{{ price }}</span></div>',
+      style: '.tag { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 1px solid var(--yq-border-color, #e5e7eb); border-radius: 10px; background: var(--yq-background-color, #ffffff); box-shadow: 0 1px 3px var(--yq-shadow-color, rgba(0, 0, 0, 0.12)); } .name { color: var(--yq-text-color, #1f2937); } .price { font-weight: 700; color: var(--yq-primary-color, #3b82f6); }',
+      script: function () {
+        return { state: { name: 'plan', price: '0 USD' } }
+      }
+    })
+
+    yq.define('yq-theme-switcher', {
+      template: '<div class="switcher"><div class="actions"><button yq-on:click="light">light theme</button><button yq-on:click="dark">dark theme</button><button yq-on:click="reset">reset theme</button><button yq-on:click="toggleGlobal">{{ globalLabel }}</button></div><pre class="css">{{ scopedPreview }}</pre></div>',
+      style: '.switcher { display: block; margin-top: 16px; } .actions { display: flex; flex-wrap: wrap; gap: 8px; } button { padding: 6px 12px; border: 1px solid var(--yq-border-color, #e5e7eb); border-radius: 8px; background: var(--yq-background-color, #ffffff); color: var(--yq-text-color, #1f2937); cursor: pointer; } .css { margin: 14px 0 0; padding: 12px 14px; border-radius: 10px; background: #0f172a; color: #e2e8f0; font-size: 12px; line-height: 1.6; overflow-x: auto; }',
+      script: function () {
+        const themes = {
+          light: {
+            'primary-color': '#2563eb',
+            'background-color': '#ffffff',
+            'text-color': '#0f172a',
+            'border-color': '#e2e8f0',
+            'shadow-color': 'rgba(15, 23, 42, 0.12)'
+          },
+          dark: {
+            'primary-color': '#60a5fa',
+            'background-color': '#111827',
+            'text-color': '#e5e7eb',
+            'border-color': '#374151',
+            'shadow-color': 'rgba(0, 0, 0, 0.6)'
+          }
+        }
+        const sample = '.price { color: var(--yq-primary-color, #3b82f6); }'
+        return {
+          state: {
+            globalLabel: 'remove global style',
+            scopedPreview: yq.scoper.generateScopedCSS(sample, 'yq-price-tag')
+          },
+          light: function () {
+            yq.scoper.updateTheme(themes.light)
+          },
+          dark: function () {
+            yq.scoper.updateTheme(themes.dark)
+          },
+          reset: function () {
+            yq.scoper.resetTheme()
+          },
+          toggleGlobal: function (state) {
+            const registered = yq.scoper.getGlobalStyles()
+            if (registered['demo-note']) {
+              yq.scoper.removeGlobalStyle('demo-note')
+              state.globalLabel = 'add global style'
+            } else {
+              yq.scoper.addGlobalStyle(noteStyle, 'demo-note')
+              state.globalLabel = 'remove global style'
+            }
+          }
+        }
+      }
+    })
+  </script>
+</body>
+</html>
