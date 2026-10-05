@@ -4,7 +4,7 @@ import { createInstanceFromCdo, mountComponent, unmountComponent, bindEvents, un
 
 const registeredElements = new Set<string>()
 
-function findParentInstance(element: Element): ComponentInstance | null {
+export function findParentInstance(element: Element): ComponentInstance | null {
   let current = element.parentElement
   while (current) {
     const inst = (current as unknown as { _yqInstance?: ComponentInstance })._yqInstance

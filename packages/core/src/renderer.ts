@@ -1,7 +1,8 @@
-import type { SNode, Slot, Cdo, RenderContext, ComponentInstance, ComponentOptions, ScoperOptions, Scoper, StyleInjection, LifecycleHooks, ParsedPart } from './index.js'
-import { parseTemplate, createRenderContext, resolvePath, generateScopeId, createStateProxy, lookup } from './index.js'
+import type { SNode, Slot, Cdo, RenderContext, ComponentInstance, ComponentOptions, ScoperOptions, Scoper, StyleInjection, LifecycleHooks, ParsedPart, ComponentDefinition } from './index.js'
+import { parseTemplate, createRenderContext, resolvePath, generateScopeId, createStateProxy, lookup, define } from './index.js'
 import { DebugManager, DebugManagerOptions, getDebugManager } from './debug-manager-simple.js'
 import { ErrorBoundary } from './error-boundary.js'
+import { findParentInstance } from './elements.js'
 
 function findNode(cdo: Cdo, nodeId: number): SNode | null {
   for (const node of cdo.nodes) {
@@ -1267,10 +1268,14 @@ function createInstanceFromCdo(name: string, cdo: Cdo, host: HTMLElement, parent
     if (updateScheduled) return
     if (instance.lifecycleState === 'unmounted') return
     updateScheduled = true
+    const startHook = (instance.lifecycleHooks as any).onBatchStart
+    if (typeof startHook === 'function') startHook()
     Promise.resolve().then(() => {
       updateScheduled = false
       if (instance.lifecycleState === 'unmounted') return
       updateComponent(instance)
+      const endHook = (instance.lifecycleHooks as any).onBatchEnd
+      if (typeof endHook === 'function') endHook()
     })
   }
   instance.requestUpdate = requestUpdate
