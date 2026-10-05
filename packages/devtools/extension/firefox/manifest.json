@@ -1,0 +1,29 @@
+{
+  "manifest_version": 2,
+  "name": "yq-sanyi Devtools",
+  "version": "0.4.0",
+  "description": "Component tree, state snapshots and update logs for yq-sanyi v0.4+ apps (Firefox).",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "yq-sanyi-devtools@yqteam.dev",
+      "strict_min_version": "109.0"
+    }
+  },
+  "permissions": [
+    "<all_urls>",
+    "activeTab",
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "shared/injector.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "devtools_page": "shared/devtools.html"
+}

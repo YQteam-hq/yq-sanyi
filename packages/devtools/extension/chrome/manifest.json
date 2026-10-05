@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "yq-sanyi Devtools",
+  "version": "0.4.0",
+  "description": "Component tree, state snapshots and update logs for yq-sanyi v0.4+ apps.",
+  "minimum_chrome_version": "102",
+  "permissions": [
+    "scripting",
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "shared/popup.html",
+    "default_title": "yq-sanyi Devtools"
+  },
+  "devtools_page": "shared/devtools.html",
+  "background": {
+    "service_worker": "shared/background.js"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "shared/injector.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}
