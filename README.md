@@ -45,7 +45,7 @@ The template is standard HTML, the style is standard CSS, the script is standard
 Clone the repository, build the bundle once, then open or write plain HTML files:
 
 ```bash
-git clone https://github.com/YQteam-dyq/yq-sanyi.git
+git clone https://github.com/YQteam-hq/yq-sanyi.git
 cd yq-sanyi
 npm install
 npm run build
@@ -105,7 +105,7 @@ Component tags are native custom elements, so they follow the HTML custom elemen
 ## What is in v0.3.0
 
 - **Declarative components.** `define` registers a native custom element; tags auto-mount, auto-update and auto-cleanup.
-- **Template.** Text binding `{{ path }}`, whole-value attribute binding, boolean attributes, list rendering `yq-for` with stable `yq-key` and an optional row index, event binding `yq-on:event="handler"` on static parts and inside list rows, conditional rendering with `yq-if` / `yq-else-if` / `yq-else` / `yq-show`, and two-way form binding with `yq-model` plus `.trim` / `.number` / `.lazy` modifiers.
+- **Template.** Text binding `{{ path }}`, whole-value attribute binding, boolean attributes, list rendering `yq-for` with stable `yq-key` and an optional row index, nested `yq-for` inside a keyed row, event binding `yq-on:event="handler"` on static parts and inside list rows, conditional rendering with `yq-if` / `yq-else-if` / `yq-else` / `yq-show`, and two-way form binding with `yq-model` plus `.trim` / `.number` / `.lazy` modifiers.
 - **Component model.** Parent-to-child props via tag attributes (static or bound, type-preserving), content distribution through default and named `<slot>` placeholders, child-to-parent `$emit('event', payload)` with `yq-on:` listeners on the child tag, and `<yq-component yq-is="name">` dynamic components driven by state.
 - **Declarative lifecycle.** `onMount` / `onUpdate` / `onUnmount` returned from `script` run at the matching phase with the reactive state, alongside the imperative `setLifecycleHooks`.
 - **State and handlers.** The `script` function returns `{ state, ...handlers }`; writes inside one synchronous task are batched into a single refresh.
@@ -139,11 +139,11 @@ The ESM entry is `packages/core/dist/core.mjs`; the global build is `packages/co
 | [parse-demo.html](./examples/parse-demo.html) | template parsing walk-through |
 | [reactive-demo.html](./examples/reactive-demo.html) | `state` / `derived` / `effect` primitives |
 | [list-row-events.html](./examples/list-row-events.html) | handlers and indexes bound inside `yq-for` rows |
+| [nested-for.html](./examples/nested-for.html) | a tree menu built from nested `yq-for` rows that expand and collapse |
 | [csp-test.html](./examples/csp-test.html) | behavior-script execution under a strict CSP |
 
 ## Known limitations
 
-- **Nested `yq-for`.** A keyed row cannot contain another `yq-for`. Move the inner list into a child component and render one tag per row.
 - **Shadow DOM is opt-in.** Style isolation uses scope rewriting by default; `createScopedElement` accepts `useShadowDOM` when strong encapsulation is needed.
 - **v0.3.0 is browser-runtime only.** No SSR, no CLI, no non-browser targets. All are deliberate non-goals for this release.
 
@@ -207,4 +207,4 @@ Your support helps keep the framework free, open and zero-dependency.
 
 ## License
 
-Apache License 2.0. Copyright 2026 YQteam-dyq. See [LICENSE](./LICENSE).
+Apache License 2.0. Copyright 2026 YQteam-hq. See [LICENSE](./LICENSE).
