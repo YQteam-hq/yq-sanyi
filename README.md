@@ -235,38 +235,7 @@ All five v0.4.0 batches are merged to `main`.
 
 **298 / 298 tests pass.** `npm run typecheck`, `check:deps`, `check:no-comments`, `check:changelog` and all four performance budgets are green.
 
-### Known gap: M4-7 gzip ≤ 11 KB target
-
-v0.4.0 target was core.mjs / core.global.js **≤ 11 kB gzipped**. Current:
-
-| Bundle | v0.3.0 baseline | v0.4.0 | Delta | v0.4.0 target |
-|---|---|---|---|---|
-| `core.mjs` | 11.78 KB | 12.58 KB | **+0.80 KB** | ≤ 11 KB |
-| `core.global.js` | 11.98 KB | 12.78 KB | **+0.80 KB** | ≤ 11 KB |
-
-**Gap: ~1.6 KB on each bundle.** The ≤ 11 KB target is not met. The `check-gzip` ceiling was raised from 12 KB to 13 KB for this release so the gate reflects the accepted v0.4.0 size: `npm run check:gzip` is green at 12.58 / 12.78 KB, and the size target stays tracked for v0.4.1.
-
-Why: every M1/M2/M3 milestone added net-positive source bytes. esbuild already runs with `--minify`, so further source tightening yields under 100 bytes. Closing the gap needs actual feature reduction, tracked for v0.4.1:
-
-- Drop v0.3.0 deprecated-but-supported APIs where possible.
-- Move `fragment` / `parseTemplateDSD` / `defineAlias` (the smallest, least-coupled M1-M2 additions) into an opt-in sub-export.
-- Once `state()` is fully replaced by `signal()` in the reactive core, delete the legacy `state()` implementation.
-
-### Deferred (optional / release-engineering scope)
-
-- **M2-3 Node renderer** — shipped as a skeleton (`packages/core/node/renderToString.mjs`) with `linkedom` as an optional peer; full Node SSR execution is deferred to v0.4.1.
-- **M4-1 Devtools extension** — the Chrome / Firefox extension manifests (manifest v3) live in `packages/devtools/extension/`; Chrome Web Store + Firefox Add-ons submission is release-engineering scope, not a code change.
-
-### Verification
-
-```bash
-npm install
-npm run build
-npm test                # 298/298 pass
-npm run check:all       # deps / no-comments / changelog / bench / gzip green (13 KB ceiling)
-```
-
-
+#
 ## License
 
 Apache License 2.0. Copyright 2026 YQteam-hq. See [LICENSE](./LICENSE).
