@@ -1,8 +1,11 @@
+import { emitError } from './error-bus.js'
+
 export class ErrorBoundary {
   private props: {
     fallback: ((error: Error, errorInfo: any) => any) | null
     children: any
     onError: ((error: Error, errorInfo: any) => void) | null
+    onRecover: ((state: any, err: Error) => void) | null
     resetKeys: string[]
     resetTimeout: number
     showStack: boolean
@@ -22,6 +25,7 @@ export class ErrorBoundary {
     fallback?: (error: Error, errorInfo: any) => any
     children?: any
     onError?: (error: Error, errorInfo: any) => void
+    onRecover?: (state: any, err: Error) => void
     resetKeys?: string[]
     resetTimeout?: number
     showStack?: boolean
@@ -30,6 +34,7 @@ export class ErrorBoundary {
       fallback: null,
       children: null,
       onError: null,
+      onRecover: null,
       resetKeys: [],
       resetTimeout: 5000,
       showStack: true,
@@ -51,16 +56,22 @@ export class ErrorBoundary {
     this.state.errorInfo = errorInfo
     this.state.errorCount++
     this.state.lastErrorTime = Date.now()
-    
+
     if (this.props.onError) {
       this.props.onError(error, errorInfo)
     }
+    emitError(error, errorInfo)
   }
 
   reset(): void {
+    const prevState = { ...this.state }
+    const prevError = this.state.error
     this.state.hasError = false
     this.state.error = null
     this.state.errorInfo = null
+    if (this.props.onRecover && prevError) {
+      this.props.onRecover(prevState, prevError)
+    }
   }
 
   destroy(): void {
