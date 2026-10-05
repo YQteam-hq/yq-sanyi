@@ -466,21 +466,21 @@ function fillListRow(cdo: Cdo, containerNode: SNode, rowElement: Element, itemSt
     }
   }
   indexRow(rowElement)
-  for (const slot of cdo.slots) {
-    if (slot.kind === 'event') continue
-    if (!containerIds.has(slot.nodeId)) continue
-    if (slot.kind === 'list') continue
-    if (slot.nodeId === containerNode.id && slot.kind === 'text' && containerNode.children.length > 0) continue
-    const target = slot.nodeId === containerNode.id ? rowElement : rowCache.get(slot.nodeId)
+  for (const childSlot of cdo.slots) {
+    if (childSlot.kind === 'event') continue
+    if (!rowIds.has(childSlot.nodeId)) continue
+    if (childSlot.nodeId === containerNode.id && childSlot.kind === 'text' && containerNode.children.length > 0) continue
+    const target = childSlot.nodeId === containerNode.id ? rowElement : rowCache.get(childSlot.nodeId)
     if (!target) continue
-    if (slot.kind === 'text') fillTextSlot(target, slot, rowContext, cdo)
-    else if (slot.kind === 'attr') fillAttrSlot(target, slot, rowContext)
-    else if (slot.kind === 'bool') fillBoolSlot(target, slot, rowContext)
-  }
-  for (const slot of cdo.slots) {
-    if (slot.kind !== 'list' || slot.nodeId === containerNode.id || !containerIds.has(slot.nodeId)) continue
-    const target = rowCache.get(slot.nodeId)
-    if (target) renderList(cdo, target, slot, rowContext)
+    if (childSlot.kind === 'list' && childSlot.nodeId !== containerNode.id) {
+      fillListSlot(target, childSlot, rowContext, cdo)
+    } else if (childSlot.kind === 'text') {
+      fillTextSlot(target, childSlot, rowContext, cdo)
+    } else if (childSlot.kind === 'attr') {
+      fillAttrSlot(target, childSlot, rowContext)
+    } else if (childSlot.kind === 'bool') {
+      fillBoolSlot(target, childSlot, rowContext)
+    }
   }
   if (bindings) {
     bindRowEvents(cdo, containerNode, rowElement, rowCache, itemState, bindings)
