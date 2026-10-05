@@ -1,6 +1,16 @@
-export const version = '0.4.0'
+export const version = '0.4.1'
 
-import { getDebugManager } from './debug-manager-simple.js'
+// v0.4.1: debug instrumentation moved to packages/devtools/.
+// Core ships a noop stub so existing call sites keep compiling.
+const _noopDebug = {
+  trackEffect(_n?: string) {},
+  trackComponent(_i?: any) {},
+  trackError(_i?: any, _e?: Error, _s?: string) {},
+  logEvent(_e: any) {}
+}
+const getDebugManager = (): typeof _noopDebug => _noopDebug
+
+
 import { ErrorBoundary } from './error-boundary.js'
 import { onError, _resetErrorHandlers } from './error-bus.js'
 import { registerElement } from './elements.js'
@@ -739,20 +749,6 @@ function state<T>(initialValue: T, componentName?: string): State<T> {
       if (value !== newValue) {
         value = newValue
         triggerState(stateObj)
-        if (componentName) {
-          const debugManager = getDebugManager()
-          debugManager.logEvent({
-            timestamp: Date.now(),
-            type: 'effect',
-            componentName,
-            data: { 
-              property: 'state', 
-              oldValue: value, 
-              newValue: newValue,
-              timestamp: Date.now()
-            }
-          })
-        }
       }
     },
     dispose(): void {
