@@ -150,12 +150,14 @@ export interface ComponentInstance {
   slotEventCleanups?: Array<() => void>
 }
 
-export function createRenderContext(state: Record<string, any>, slots: Slot[]): RenderContext {
+export function createRenderContext(state: Record<string, any>, slots: Slot[], bindings?: RowEventBindings): RenderContext {
   return {
     state,
     slots,
     nodeCache: new Map(),
-    listElements: new Map()
+    listElements: new Map(),
+    handlers: bindings?.handlers,
+    host: bindings?.host || undefined
   }
 }
 
@@ -326,7 +328,6 @@ function parseListSpec(value: string, keyAttr: string | null): ListSpec {
 function parseTemplate(name: string, template: string): { root: SNode; nodes: SNode[]; nodeIndex: Map<number, SNode>; slots: Slot[] } {
   const slots: Slot[] = []
   const nodes: SNode[] = []
-  let inList = false
   let nodeId = 0
 
   function error(message: string): never {
@@ -335,8 +336,6 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
 
   function handleAttr(node: SNode, attr: string, value: string): void {
     if (attr === 'yq-for') {
-      if (inList) error('nested yq-for not allowed')
-      inList = true
       node.list = parseListSpec(value, node.staticAttrs['yq-key'] || null)
       delete node.staticAttrs['yq-key']
     } else if (attr === 'yq-key') {
@@ -598,7 +597,7 @@ function createScriptFactory(script: unknown): (() => unknown) | null {
   return null
 }
 
-import { renderSkeleton, populateNodeCache, fillSlots, updateSlots, createComponent, mountComponent, updateComponent, unmountComponent, scoper, withErrorBoundary, getErrorBoundaryInfo, resetErrorBoundary, generateScopedCSS, injectStyle, removeStyle, updateTheme, getThemeVariables, resetTheme, addGlobalStyle, removeGlobalStyle, getGlobalStyles, clearGlobalStyles, createScopedElement } from './renderer.js'
+import { renderSkeleton, populateNodeCache, fillSlots, updateSlots, createComponent, mountComponent, updateComponent, unmountComponent, scoper, withErrorBoundary, getErrorBoundaryInfo, resetErrorBoundary, generateScopedCSS, injectStyle, removeStyle, updateTheme, getThemeVariables, resetTheme, addGlobalStyle, removeGlobalStyle, getGlobalStyles, clearGlobalStyles, createScopedElement, RowEventBindings } from './renderer.js'
 
 let effectStack: Effect[] = []
 let allEffects: Effect[] = []
