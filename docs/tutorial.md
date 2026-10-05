@@ -585,3 +585,107 @@ The declarative path is the primary one, but the runtime also exports an imperat
 - Open `examples/full-demo.html` for a one-page showcase of tags, events, lists and state.
 - Browse [examples/list-row-events.html](../examples/list-row-events.html) for row handlers, row indexes and keyed reconciliation.
 - Read the Chinese version of this tutorial: [Chinese tutorial](./i18n/zh-CN/tutorial.md).
+
+
+## What's new in v0.4.0
+
+v0.4.0 是一组增量 API 与可用性改进，零破坏性：v0.3.0 写的组件在 v0.4.0 仍然跑。下列 API 已合并，详情见 `PR-v0.4.0-preview.md`。
+
+### Nested `yq-for` (M1-1 · closes L1)
+
+外层 `yq-for` 行带 `yq-key` 时，内层 `yq-for` 现在被允许；parser 会校验"嵌套 yq-for 必须外层带 yq-key"。renderer 把内层 list 视为子组件实例，`<yq-row>` 在 `<yq-row>` 里正常渲染、复用、响应更新。
+
+```html
+<div yq-for="group in groups" yq-key="id">
+  <yq-row yq-for="row in group.items" yq-key="tag"></yq-row>
+</div>
+```
+
+### `aria-*` 绑定路径空时不渲染 (M1-2 · a11y)
+
+`aria-label="{{ name }}"` 在 `name` 为空字符串时**不**渲染 `aria-label=""`（屏读器友好）。`yq-on:keydown` / `yq-on:focus` / `yq-on:blur` / `yq-on:paste` / `yq-on:wheel` 走通用 `yq-on:*` 路径，无需新 API。
+
+### `yq.defineAlias(displayName, realName)` (M1-3 · closes L4)
+
+允许 `<button-counter>` 这种"非标准前缀"的 tag 名 alias 到真正的组件 `<yq-button-counter>`：
+
+```js
+yq.define('yq-button-counter', { template: '<button>{{ count }}</button>', style: '', script: () => ({ state: { count: 0 }, inc(s){ s.count++ }}) })
+yq.defineAlias('button-counter', 'yq-button-counter')
+```
+
+之后 `<button-counter>` 就是 `<yq-button-counter>` 的影子映射。
+
+### `<template id="x">` 跨组件复用片段 (M1-4)
+
+`yq.fragment(id, html)` 注册全局片段；模板里 `<template id="x">…</template>` 在 parser 阶段就地展开为片段内容（嵌套引用递归展开）：
+
+```js
+yq.fragment('frag-button', '<button class="primary">click</button>')
+```
+
+```html
+<div>
+  <template id="frag-button"></template>
+  <template id="frag-button"></template>
+</div>
+```
+
+### Error boundary 强化 (M1-5)
+
+- `new ErrorBoundary({ onRecover: (state, err) => … })`：boundary 从错误恢复时调用
+- `yq.onError(fn)`：全局结构化警告订阅（handler 抛错不影响其他订阅；返回 unsubscribe 函数）
+- `withErrorBoundary(name, fallback?, onRecover?)`：第三个参数透传 `onRecover`
+
+### `yq.parseTemplateDSD(src)` (M2-1 · SSR 入口)
+
+返回 `{ mode: 'open' | 'closed' | null, content: string }`。SSR 端拿到模板字符串后用它识别 `<template shadowrootmode="…">` 节点，输出与之等价的 Declarative Shadow DOM。
+
+### `yq.hydrate(elementOrSelector, definition?)` (M2-2 · 客户端接管)
+
+给一个已存在的 DOM 元素（或 selector），yq-sanyi 就地接管——**不重建 DOM**。内部走 `createInstanceFromCdo(..., skipRender=true)`。
+
+```js
+yq.define('yq-card', { template: '<div><slot></slot></div>', style: '', script: () => ({}) })
+yq.hydrate('#app yq-card')
+```
+
+`elementOrSelector` 可以是 selector 字符串，也可以直接传 `Element`；如果组件未注册，可以传第二个参数 `definition` 自动注册。
+
+### `yq.signal(initial)` (M3-1 · 细粒度响应原语)
+
+```ts
+const count = yq.signal(0)
+count.get()      // → 0
+count.set(5)      // 触发订阅
+count.peek()     // → 5 (不触发订阅)
+const off = count.subscribe(() => console.log(count.get()))
+off()            // unsubscribe
+```
+
+- `set` 用 `Object.is` 做相等性判定；同值不通知
+- 与现有 `state()` 并存，`state` 标记 deprecated-but-supported
+
+### `yq.effectPre(fn)` + `yq.effectScope()` (M3-3)
+
+```ts
+const stop = yq.effectPre(() => { /* sync run */ return cleanup })
+stop()
+
+const scope = yq.effectScope()
+scope.run(() => { /* … */ })
+scope.stop()    // 后续 run 是 no-op，stop 幂等
+```
+
+### Examples
+
+- `examples/nested-list.html` — M1-1 嵌套列表
+- `examples/ssr-hydrate.html` — M2-1 + M2-2 接管已渲染 DOM
+- `examples/a11y-form.html` — M1-2 表单 + aria-* 行为
+
+### 已知 gzip regression
+
+v0.3.0 baseline：core.mjs 11.78 KB / core.global.js 11.98 KB。
+v0.4.0（截至本次 PR）：core.mjs **12.52 KB** / core.global.js **12.71 KB**（累计 +0.74 / +0.73 KB）。
+v0.4.0 ≤11 KB 目标由 M4-7 收口；本节只是说明，不在本次 PR 范围内清。
+
