@@ -205,6 +205,103 @@ yq-sanyi is built and maintained in our free time. If it saves you time, conside
 
 Your support helps keep the framework free, open and zero-dependency.
 
+## v0.4.0 status (as of 2026-10-05)
+
+### Done in v0.4.0 preview (4 PRs open against `main`)
+
+| PR | Batch | Roadmap items landed | Commit |
+|---|---|---|---|
+| [#10](https://github.com/YQteam-hq/yq-sanyi/pull/10) | 1 | M1-1 nested yq-for (closes L1), M1-2 a11y hooks, M1-3 defineAlias (closes L4 partial), M1-4 `<template id="x">` fragments, M1-5 onRecover + yq.onError, M2-1 parseTemplateDSD, M2-2 yq.hydrate, M3-1 yq.signal(), M3-3 effect.pre + effectScope, M4-3 tutorial "What's new in v0.4.0" section, M4-5 examples (nested-list / ssr-hydrate / a11y-form) | 74a91ca |
+| [#11](https://github.com/YQteam-hq/yq-sanyi/pull/11) | 2 | M4-2 React/Vue wrappers (React 19 JSX + Vue 3 GlobalComponents, .d.ts only, ≤1 kB), M4-4 Playground (live template + script editor), M4-6 perf budgets tightened (first-interactive ≤800 / update-latency ≤150 / scroll-fps ≥58, all PASS) | b5b9b5d |
+| [#12](https://github.com/YQteam-hq/yq-sanyi/pull/12) | 3 | M3-4 batch observability (onBatchStart / onBatchEnd hooks wired in `requestUpdate` / microtask) | f812650 |
+| [#13](https://github.com/YQteam-hq/yq-sanyi/pull/13) | 4 | M3-2 derived auto-detect (signal + state deps via new `activeSignalTracker`; reads of signal() inside a derived computeFn register as deps and resubscribe on each recompute) | 51f03447 |
+
+**224 / 224 tests pass.** All four performance budgets PASS at the new tightened thresholds. `check:deps` / `check:no-comments` clean.
+
+### Known gap: M4-7 gzip ≤ 11 KB target
+
+v0.4.0 target was core.mjs / core.global.js **≤ 11 kB gzipped**. Current:
+
+| Bundle | v0.3.0 baseline | v0.4.0 preview | Delta | v0.4.0 target |
+|---|---|---|---|---|
+| `core.mjs` | 11.78 KB | 12.63 KB | **+0.85 KB** | ≤ 11 KB |
+| `core.global.js` | 11.98 KB | 12.82 KB | **+0.84 KB** | ≤ 11 KB |
+
+**Gap: ~1.6 KB on each bundle.** Target not met.
+
+Why: every M1/M2/M3 milestone in the roadmap (M1-1~M1-5, M2-1/M2-2, M3-1~M3-4, plus M4-3/M4-5) added net-positive source bytes. esbuild already runs with `--minify`, so further source tightening (shorter names, inlining) yields <100 bytes. Reaching ≤ 11 KB requires actual feature reduction.
+
+v0.4.1 plan to close the gap (not in this preview):
+- Drop v0.3.0 deprecated-but-supported APIs where possible
+- Move `fragment` / `parseTemplateDSD` / `defineAlias` (the smallest, least-coupled M1-M2 additions) into an opt-in sub-export — they were the biggest individual contributors
+- Once state() is fully replaced by signal() in the reactive core, delete the legacy state() implementation
+
+Until v0.4.1, the over-budget size is documented as a known issue in every v0.4.0 preview PR.
+
+### Deferred (optional / release-engineering scope)
+
+- **M2-3 Node renderer** — roadmap explicitly marked optional. Requires linkedom as a peer. No current implementation; SSR can be done with the existing browser runtime + JSDOM-style hydration helpers.
+- **M4-1 Devtools extension** — the `packages/devtools` package is already a separate npm module (`yq-sanyi-devtools` v0.2.0). The remaining work is Chrome / Firefox DevTools extension packaging (manifest v3), which is release-engineering scope (Chrome Web Store + Firefox Add-ons submission), not a code change.
+
+### Verification command
+
+```bash
+cd projects/yq-sanyi-main
+npm install
+npm run build
+npm test                # 224/224 PASS
+npm run check:all       # check:deps ok, check:no-comments ok, bench all 3 PASS (new tightened thresholds)
+node scripts/check-gzip.mjs   # known over-budget per M4-7 gap above
+```
+
+
+## v0.4.0 status (as of 2026-10-05)
+
+### Done in v0.4.0 preview (4 PRs open against main)
+
+- PR #10 (batch 1, commit 74a91ca): M1-1 nested yq-for (closes L1), M1-2 a11y hooks, M1-3 defineAlias (closes L4 partial), M1-4 `<template id=x>` fragments, M1-5 onRecover + yq.onError, M2-1 parseTemplateDSD, M2-2 yq.hydrate, M3-1 yq.signal(), M3-3 effect.pre + effectScope, M4-3 tutorial section, M4-5 examples
+- PR #11 (batch 2, commit b5b9b5d): M4-2 React/Vue wrappers (.d.ts only, <=1 kB), M4-4 Playground, M4-6 perf budgets tightened (first-interactive <=800 / update-latency <=150 / scroll-fps >=58, all PASS)
+- PR #12 (batch 3, commit f812650): M3-4 batch observability (onBatchStart / onBatchEnd hooks wired in requestUpdate / microtask)
+- PR #13 (batch 4, commit 51f03447): M3-2 derived auto-detect (signal + state deps via new activeSignalTracker)
+
+224 / 224 tests pass. All four performance budgets PASS at the new tightened thresholds. check:deps / check:no-comments clean.
+
+### Known gap: M4-7 gzip <= 11 KB target
+
+v0.4.0 target was core.mjs / core.global.js <= 11 kB gzipped. Current:
+
+| Bundle | v0.3.0 baseline | v0.4.0 preview | Delta | v0.4.0 target |
+|---|---|---|---|---|
+| core.mjs | 11.78 KB | 12.63 KB | +0.85 KB | <= 11 KB |
+| core.global.js | 11.98 KB | 12.82 KB | +0.84 KB | <= 11 KB |
+
+Gap: ~1.6 KB on each bundle. Target not met.
+
+Why: every M1/M2/M3 milestone in the roadmap (M1-1~M1-5, M2-1/M2-2, M3-1~M3-4, plus M4-3/M4-5) added net-positive source bytes. esbuild already runs with --minify, so further source tightening (shorter names, inlining) yields <100 bytes. Reaching <= 11 KB requires actual feature reduction.
+
+v0.4.1 plan to close the gap (not in this preview):
+- Drop v0.3.0 deprecated-but-supported APIs where possible
+- Move fragment / parseTemplateDSD / defineAlias (the smallest, least-coupled M1-M2 additions) into an opt-in sub-export
+- Once state() is fully replaced by signal() in the reactive core, delete the legacy state() implementation
+
+Until v0.4.1, the over-budget size is documented as a known issue in every v0.4.0 preview PR.
+
+### Deferred (optional / release-engineering scope)
+
+- M2-3 Node renderer -- roadmap explicitly marked optional. Requires linkedom as a peer. No current implementation; SSR can be done with the existing browser runtime + JSDOM-style hydration helpers.
+- M4-1 Devtools extension -- the packages/devtools package is already a separate npm module (yq-sanyi-devtools v0.2.0). The remaining work is Chrome / Firefox DevTools extension packaging (manifest v3), which is release-engineering scope (Chrome Web Store + Firefox Add-ons submission), not a code change.
+
+### Verification command
+
+```bash
+cd projects/yq-sanyi-main
+npm install
+npm run build
+npm test                # 224/224 PASS
+npm run check:all       # check:deps ok, check:no-comments ok, bench all 3 PASS (new tightened thresholds)
+node scripts/check-gzip.mjs   # known over-budget per M4-7 gap above
+```
+
 ## License
 
 Apache License 2.0. Copyright 2026 YQteam-dyq. See [LICENSE](./LICENSE).
