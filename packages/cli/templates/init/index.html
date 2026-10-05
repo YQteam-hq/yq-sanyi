@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{project}}</title>
+<style>
+body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; color: #1e293b; }
+h1 { font-size: 1.5rem; }
+p.note { color: #64748b; font-size: 0.9rem; }
+{{#example}}
+yq-counter { display: block; margin: 1.5rem 0; }
+{{/example}}
+</style>
+</head>
+<body>
+<h1>{{project}}</h1>
+<p class="note">Scaffolded by yq-sanyi-cli. Edit this file, then run <code>yq dev</code> for live reload.</p>
+{{#example}}
+<yq-counter></yq-counter>
+{{/example}}
+<p class="note">runtime version <span id="version"></span></p>
+{{#core}}
+<script src="./{{core}}"></script>
+{{/core}}
+<script type="module" src="./app.js"></script>
+</body>
+</html>
