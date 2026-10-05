@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>yq-sanyi · Playground (M4-4)</title>
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; }
+    header { padding: 12px 16px; border-bottom: 1px solid #e5e7eb; background: #fafafa; }
+    h1 { font-size: 16px; margin: 0; }
+    .meta { font-size: 12px; color: #666; margin-top: 2px; }
+    main { display: grid; grid-template-columns: 1fr 1fr; flex: 1; min-height: 0; }
+    .pane { display: flex; flex-direction: column; border-right: 1px solid #e5e7eb; min-height: 0; }
+    .pane:last-child { border-right: none; }
+    .pane h2 { font-size: 12px; margin: 0; padding: 6px 12px; background: #f5f5f5; border-bottom: 1px solid #e5e7eb; text-transform: uppercase; letter-spacing: 0.04em; color: #555; }
+    textarea { flex: 1; padding: 12px; font-family: ui-monospace, SF Mono, monospace; font-size: 13px; border: none; outline: none; resize: none; }
+    #preview { flex: 1; padding: 16px; overflow: auto; background: #fff; }
+    .controls { padding: 8px 12px; background: #f5f5f5; border-top: 1px solid #e5e7eb; }
+    button { padding: 6px 12px; border: 1px solid #d1d5db; background: #fff; border-radius: 4px; font-size: 13px; cursor: pointer; }
+    button:hover { background: #f9fafb; }
+    #status { font-size: 12px; color: #666; margin-left: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>yq-sanyi · Playground</h1>
+    <div class="meta">Edit template + script on the left, render preview on the right. Click <b>Render</b> to apply.</div>
+  </header>
+
+  <main>
+    <div class="pane">
+      <h2>Template</h2>
+      <textarea id="tpl"><div>
+  <button yq-on:click="inc">count {{ count }}</button>
+  <span class="meta">click count</span>
+</div></textarea>
+      <h2>Script</h2>
+      <textarea id="script">function () {
+  return {
+    state: { count: 0 },
+    inc: function (s) { s.count = s.count + 1 }
+  }
+}</textarea>
+      <div class="controls">
+        <button id="render">Render</button>
+        <span id="status">ready</span>
+      </div>
+    </div>
+    <div class="pane">
+      <h2>Preview</h2>
+      <div id="preview"></div>
+    </div>
+  </main>
+
+  <script src="../packages/core/dist/core.global.js"></script>
+  <script>
+    const tplEl = document.getElementById('tpl')
+    const scriptEl = document.getElementById('script')
+    const previewEl = document.getElementById('preview')
+    const statusEl = document.getElementById('status')
+
+    let renderCount = 0
+
+    document.getElementById('render').addEventListener('click', () => {
+      renderCount++
+      const tag = 'yq-playground-' + renderCount
+      const def = {
+        template: tplEl.value,
+        style: '',
+        script: new Function('return (' + scriptEl.value + ')()')()
+      }
+      previewEl.innerHTML = '<' + tag + '></' + tag + '>'
+      try {
+        yq.define(tag, def)
+        statusEl.textContent = 'rendered as <' + tag + '>'
+      } catch (e) {
+        statusEl.textContent = 'parse error: ' + e.message
+      }
+    })
+
+    document.getElementById('render').click()
+  </script>
+</body>
+</html>

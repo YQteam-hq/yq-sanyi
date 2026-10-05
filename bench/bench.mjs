@@ -19,9 +19,9 @@ const SCROLL_WARMUP = 20
 const SCROLL_FRAMES = 120
 
 const BUDGETS = {
-  'first-interactive': { unit: 'ms', limit: 1000, rule: 'max' },
-  'update-latency': { unit: 'ms', limit: 200, rule: 'max' },
-  'scroll-fps': { unit: 'fps', limit: 55, rule: 'min' }
+  'first-interactive': { unit: 'ms', limit: 800, rule: 'max' },
+  'update-latency': { unit: 'ms', limit: 150, rule: 'max' },
+  'scroll-fps': { unit: 'fps', limit: 58, rule: 'min' }
 }
 
 function write(line) {
