@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>yq-sanyi · A11y Form 示例 (M1-2)</title>
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; max-width: 560px; margin: 32px auto; padding: 0 16px; color: #222; }
+    h1 { font-size: 18px; margin-bottom: 16px; }
+    form { display: flex; flex-direction: column; gap: 12px; }
+    label { font-size: 13px; color: #444; }
+    input { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; }
+    input:focus { outline: 2px solid #2563eb; outline-offset: 1px; }
+    .err { color: #b91c1c; font-size: 12px; min-height: 16px; }
+    .meta { font-size: 12px; color: #666; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h1>yq-sanyi · 表单 (M1-2 a11y hooks)</h1>
+
+  <yq-login-form></yq-login-form>
+
+  <div class="meta">
+    演示 <code>aria-*</code> 绑定路径为空时不渲染该属性（M1-2）；
+    <code>yq-on:keydown</code> / <code>yq-on:focus</code> / <code>yq-on:blur</code> 走通用 yq-on:* 路径。
+  </div>
+
+  <script src="../packages/core/dist/core.global.js"></script>
+  <script>
+    yq.define('yq-login-form', {
+      template:
+        '<form yq-on:submit="submit">' +
+          '<div>' +
+            '<label for="email">邮箱</label>' +
+            '<input id="email" yq-model.trim="email" yq-on:focus="markFocus" yq-on:blur="validate" aria-label="{{ labelFor(name) }}" aria-invalid="{{ error ? 'true' : '' }}" aria-describedby="email-err">' +
+            '<div id="email-err" class="err" role="alert">{{ error }}</div>' +
+          '</div>' +
+          '<div>' +
+            '<label for="pw">密码</label>' +
+            '<input id="pw" type="password" yq-model="pw" yq-on:keydown="onKey" aria-label="{{ pwLabel }}">' +
+          '</div>' +
+          '<button type="submit">登录</button>' +
+        '</form>',
+      style: '',
+      script: function () {
+        return {
+          state: {
+            email: '',
+            pw: '',
+            error: '',
+            focused: false
+          },
+          labelFor: function (s) { return s === '' ? '' : '邮箱输入框' },
+          pwLabel: function (s) { return '密码输入框' },
+          markFocus: function (s) { s.focused = true },
+          validate: function (s) {
+            s.error = s.email.indexOf('@') < 0 ? '邮箱格式不对' : ''
+          },
+          onKey: function (s, ev) {
+            if (ev.key === 'Enter') { /* submit */ }
+          },
+          submit: function (s, ev) {
+            ev.preventDefault()
+            console.log('submit:', s.email, s.pw)
+          }
+        }
+      }
+    })
+  </script>
+</body>
+</html>
