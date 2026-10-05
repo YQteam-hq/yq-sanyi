@@ -328,7 +328,7 @@ function fillTextSlot(node: Element, slot: Extract<Slot, { kind: 'text' }>, cont
 
 function fillAttrSlot(node: Element, slot: Extract<Slot, { kind: 'attr' }>, context: RenderContext): void {
   const value = slot.path ? resolvePath(context.state, slot.path) : undefined
-  if (value != null) {
+  if (value != null && !(slot.attr.startsWith('aria-') && value === '')) {
     node.setAttribute(slot.attr, String(value))
   }
 }
@@ -472,13 +472,14 @@ function fillListRow(cdo: Cdo, containerNode: SNode, rowElement: Element, itemSt
   }
   indexRow(rowElement)
   for (const childSlot of cdo.slots) {
-    if (childSlot.kind === 'list') continue
     if (childSlot.kind === 'event') continue
     if (!rowIds.has(childSlot.nodeId)) continue
     if (childSlot.nodeId === containerNode.id && childSlot.kind === 'text' && containerNode.children.length > 0) continue
     const target = childSlot.nodeId === containerNode.id ? rowElement : rowCache.get(childSlot.nodeId)
     if (!target) continue
-    if (childSlot.kind === 'text') {
+    if (childSlot.kind === 'list' && childSlot.nodeId !== containerNode.id) {
+      fillListSlot(target, childSlot, rowContext, cdo)
+    } else if (childSlot.kind === 'text') {
       fillTextSlot(target, childSlot, rowContext, cdo)
     } else if (childSlot.kind === 'attr') {
       fillAttrSlot(target, childSlot, rowContext)
@@ -1208,7 +1209,7 @@ function extractDeclarativeHooks(result: Record<string, any> | null, instance: C
   return hooks
 }
 
-function createInstanceFromCdo(name: string, cdo: Cdo, host: HTMLElement, parentInstance?: ComponentInstance | null): ComponentInstance {
+function createInstanceFromCdo(name: string, cdo: Cdo, host: HTMLElement, parentInstance?: ComponentInstance | null, skipRender: boolean = false): ComponentInstance {
   const scriptResult = runScriptResult(cdo)
   const state: Record<string, any> = extractScriptState(scriptResult)
   const handlers = extractHandlers(scriptResult)
@@ -1217,11 +1218,16 @@ function createInstanceFromCdo(name: string, cdo: Cdo, host: HTMLElement, parent
   const context = createRenderContext(state, cdo.slots)
   const capturedSlotContent: Element[] = Array.from(host.children as unknown as Element[] || [])
 
-  if ('innerHTML' in host) {
-    host.innerHTML = ''
+  let root: Element
+  if (skipRender) {
+    root = host
+  } else {
+    if ('innerHTML' in host) {
+      host.innerHTML = ''
+    }
+    root = renderSkeleton(cdo, host)
+    distributeSlotContent(root, capturedSlotContent)
   }
-  const root = renderSkeleton(cdo, host)
-  distributeSlotContent(root, capturedSlotContent)
   context.nodeCache = populateNodeCache(cdo, root)
 
   const debugManager = getDebugManager()
@@ -1261,10 +1267,14 @@ function createInstanceFromCdo(name: string, cdo: Cdo, host: HTMLElement, parent
     if (updateScheduled) return
     if (instance.lifecycleState === 'unmounted') return
     updateScheduled = true
+    const startHook = (instance.lifecycleHooks as any).onBatchStart
+    if (typeof startHook === 'function') startHook()
     Promise.resolve().then(() => {
       updateScheduled = false
       if (instance.lifecycleState === 'unmounted') return
       updateComponent(instance)
+      const endHook = (instance.lifecycleHooks as any).onBatchEnd
+      if (typeof endHook === 'function') endHook()
     })
   }
   instance.requestUpdate = requestUpdate
@@ -1484,7 +1494,7 @@ function unmountComponent(instance: ComponentInstance): void {
   }
 }
 
-function withErrorBoundary(componentName: string, fallback?: (error: Error, errorInfo: any) => any): (instance: ComponentInstance) => ComponentInstance {
+function withErrorBoundary(componentName: string, fallback?: (error: Error, errorInfo: any) => any, onRecover?: (state: any, err: Error) => void): (instance: ComponentInstance) => ComponentInstance {
   return (instance: ComponentInstance): ComponentInstance => {
     const errorBoundary = new ErrorBoundary({
       fallback: fallback || ((error: Error, errorInfo: any) => {
@@ -1497,7 +1507,8 @@ function withErrorBoundary(componentName: string, fallback?: (error: Error, erro
       }),
       onError: (error: Error, errorInfo: any) => {
         console.error(`[ErrorBoundary] ${componentName}:`, error)
-      }
+      },
+      onRecover: onRecover
     })
     
     instance.errorBoundary = errorBoundary
@@ -1542,12 +1553,39 @@ const scoper: Scoper = {
   clearGlobalStyles
 }
 
+function hydrate(elementOrSelector: string | Element, definition?: ComponentDefinition): ComponentInstance {
+  const host = typeof elementOrSelector === 'string'
+    ? document.querySelector(elementOrSelector) as HTMLElement
+    : elementOrSelector as HTMLElement
+  if (!host) {
+    throw new Error('[yq:hydrate] element not found: ' + String(elementOrSelector))
+  }
+  const name = host.tagName.toLowerCase()
+  let entry = lookup(name)
+  if (!entry) {
+    if (!definition) {
+      throw new Error('[yq:hydrate] component not registered: ' + name)
+    }
+    define(name, definition)
+    entry = lookup(name)
+  }
+  if (!entry) {
+    throw new Error('[yq:hydrate] lookup failed after define: ' + name)
+  }
+  const parentInstance = findParentInstance(host)
+  const instance = createInstanceFromCdo(name, entry.cdo, host, parentInstance, true)
+  mountComponent(instance)
+  bindEvents(instance)
+  return instance
+}
+
 export {
   renderSkeleton,
   populateNodeCache,
   fillSlots,
   updateSlots,
   createComponent,
+  hydrate,
   mountComponent,
   updateComponent,
   unmountComponent,
