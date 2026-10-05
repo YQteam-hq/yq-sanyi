@@ -39,6 +39,7 @@ export interface Cdo {
   name: string
   root: SNode
   nodes: SNode[]
+  nodeIndex: Map<number, SNode>
   styleText: string
   scriptFactory: (() => unknown) | null
   slots: Slot[]
@@ -322,7 +323,7 @@ function parseListSpec(value: string, keyAttr: string | null): ListSpec {
   return { itemVar, indexVar, itemsPath, keyProp: keyAttr }
 }
 
-function parseTemplate(name: string, template: string): { root: SNode; nodes: SNode[]; slots: Slot[] } {
+function parseTemplate(name: string, template: string): { root: SNode; nodes: SNode[]; nodeIndex: Map<number, SNode>; slots: Slot[] } {
   const slots: Slot[] = []
   const nodes: SNode[] = []
   let inList = false
@@ -573,7 +574,10 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
 
   if (root.cond) error('yq-if / yq-show on the root element is not supported')
 
-  return { root, nodes, slots }
+  const nodeIndex = new Map<number, SNode>()
+  for (const node of nodes) nodeIndex.set(node.id, node)
+
+  return { root, nodes, nodeIndex, slots }
 }
 
 function createScriptFactory(script: unknown): (() => unknown) | null {
@@ -854,11 +858,12 @@ function lookup(name: string): { name: string; cdo: Cdo } | undefined {
   if (!definition) return undefined
   
   if (!definition.cdo) {
-    const { root, nodes, slots } = parseTemplate(name, definition.template)
+    const { root, nodes, nodeIndex, slots } = parseTemplate(name, definition.template)
     definition.cdo = {
       name,
       root,
       nodes,
+      nodeIndex,
       styleText: definition.style,
       scriptFactory: createScriptFactory(definition.script),
       slots,

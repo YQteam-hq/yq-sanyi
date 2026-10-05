@@ -3,13 +3,6 @@ import { parseTemplate, createRenderContext, resolvePath, generateScopeId, creat
 import { DebugManager, DebugManagerOptions, getDebugManager } from './debug-manager-simple.js'
 import { ErrorBoundary } from './error-boundary.js'
 
-function findNode(cdo: Cdo, nodeId: number): SNode | null {
-  for (const node of cdo.nodes) {
-    if (node.id === nodeId) return node
-  }
-  return null
-}
-
 function isNestedInstanceHost(element: Element): boolean {
   const el = element as unknown as { _yqInstance?: unknown }
   return Boolean(el._yqInstance)
@@ -161,7 +154,7 @@ function renderSlotContent(parentInstance: ComponentInstance | null | undefined,
   for (const el of distributed) {
     const id = parseInt((el as HTMLElement).dataset.yqNodeId || '0', 10)
     if (!id || !parentNodeIds.has(id)) continue
-    const snode = findNode(parentInstance.cdo, id)
+    const snode = parentInstance.cdo.nodeIndex.get(id)
     if (!snode) continue
     nodeCache.set(id, el)
     collectSubtreeIds(snode, subtreeIds)
@@ -234,7 +227,7 @@ function syncNestedProps(cdo: Cdo, context: RenderContext): void {
   for (const slot of cdo.slots) {
     if (slot.kind !== 'attr' && slot.kind !== 'bool') continue
     if (!slot.path) continue
-    const snode = findNode(cdo, slot.nodeId)
+    const snode = cdo.nodeIndex.get(slot.nodeId)
     if (!snode || !componentTagName(snode.tag)) continue
     const element = context.nodeCache.get(slot.nodeId)
     if (!element) continue
@@ -318,7 +311,7 @@ function cloneStaticNode(node: SNode): Element {
 }
 
 function fillTextSlot(node: Element, slot: Extract<Slot, { kind: 'text' }>, context: RenderContext, cdo: Cdo): void {
-  const snode = findNode(cdo, slot.nodeId)
+  const snode = cdo.nodeIndex.get(slot.nodeId)
   if (!snode || snode.children.length > 0) return
   const text = composeText(snode, context.state)
   if (node.textContent !== text) {
@@ -492,7 +485,7 @@ function fillListRow(cdo: Cdo, containerNode: SNode, rowElement: Element, itemSt
 }
 
 function createListItem(cdo: Cdo, slot: Extract<Slot, { kind: 'list' }>, item: any, context: RenderContext, index = 0): Element {
-  const containerNode = findNode(cdo, slot.nodeId)
+  const containerNode = cdo.nodeIndex.get(slot.nodeId)
   if (!containerNode) return document.createElement('div')
   const itemState = createRowState(context.state, slot, item, index)
   const rowElement = cloneStaticNode(containerNode)
@@ -501,7 +494,7 @@ function createListItem(cdo: Cdo, slot: Extract<Slot, { kind: 'list' }>, item: a
 }
 
 function renderList(cdo: Cdo, node: Element, slot: Extract<Slot, { kind: 'list' }>, context: RenderContext): void {
-  const containerNode = findNode(cdo, slot.nodeId)
+  const containerNode = cdo.nodeIndex.get(slot.nodeId)
   if (!containerNode) return
   const rawItems = resolvePath(context.state, slot.itemsPath)
   const items = Array.isArray(rawItems) ? rawItems : []
@@ -602,7 +595,7 @@ function populateNodeCache(cdo: Cdo, root: Element): Map<number, Element> {
 function belongsToListItem(cdo: Cdo, nodeId: number): boolean {
   for (const slot of cdo.slots) {
     if (slot.kind !== 'list') continue
-    const containerNode = findNode(cdo, slot.nodeId)
+    const containerNode = cdo.nodeIndex.get(slot.nodeId)
     if (!containerNode) continue
     const rowIds = new Set<number>()
     collectSubtreeIds(containerNode, rowIds)
@@ -1116,6 +1109,7 @@ function createComponent(options: ComponentOptions): ComponentInstance {
     name,
     root: parsed.root,
     nodes: parsed.nodes,
+    nodeIndex: parsed.nodeIndex,
     styleText: '',
     scriptFactory: script ? (() => script) : null,
     slots: parsed.slots,
