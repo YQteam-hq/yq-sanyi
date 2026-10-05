@@ -20,7 +20,7 @@
     "serve": "node scripts/serve.mjs"
   },
   "devDependencies": {
-    "esbuild": "^0.25.5",
+    "esbuild": "^0.28.2",
     "typescript": "^5.8.3"
   },
   "engines": {
