@@ -1,0 +1,16 @@
+{
+  "name": "yq-sanyi-wrappers",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "description": "Optional subpath exports for integrating yq-sanyi custom elements into React 19 / Vue 3. TypeScript declaration-only (zero runtime bytes).",
+  "types": "./react.d.ts",
+  "exports": {
+    "./react": "./react.d.ts",
+    "./vue": "./vue.d.ts"
+  },
+  "files": [
+    "react.d.ts",
+    "vue.d.ts"
+  ]
+}
