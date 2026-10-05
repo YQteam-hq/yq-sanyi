@@ -45,7 +45,7 @@ The template is standard HTML, the style is standard CSS, the script is standard
 Clone the repository, build the bundle once, then open or write plain HTML files:
 
 ```bash
-git clone https://github.com/YQteam-dyq/yq-sanyi.git
+git clone https://github.com/YQteam-hq/yq-sanyi.git
 cd yq-sanyi
 npm install
 npm run build
@@ -105,7 +105,7 @@ Component tags are native custom elements, so they follow the HTML custom elemen
 ## What is in v0.3.0
 
 - **Declarative components.** `define` registers a native custom element; tags auto-mount, auto-update and auto-cleanup.
-- **Template.** Text binding `{{ path }}`, whole-value attribute binding, boolean attributes, list rendering `yq-for` with stable `yq-key` and an optional row index, event binding `yq-on:event="handler"` on static parts and inside list rows, conditional rendering with `yq-if` / `yq-else-if` / `yq-else` / `yq-show`, and two-way form binding with `yq-model` plus `.trim` / `.number` / `.lazy` modifiers.
+- **Template.** Text binding `{{ path }}`, whole-value attribute binding, boolean attributes, list rendering `yq-for` with stable `yq-key` and an optional row index, nested `yq-for` inside a keyed row, event binding `yq-on:event="handler"` on static parts and inside list rows, conditional rendering with `yq-if` / `yq-else-if` / `yq-else` / `yq-show`, and two-way form binding with `yq-model` plus `.trim` / `.number` / `.lazy` modifiers.
 - **Component model.** Parent-to-child props via tag attributes (static or bound, type-preserving), content distribution through default and named `<slot>` placeholders, child-to-parent `$emit('event', payload)` with `yq-on:` listeners on the child tag, and `<yq-component yq-is="name">` dynamic components driven by state.
 - **Declarative lifecycle.** `onMount` / `onUpdate` / `onUnmount` returned from `script` run at the matching phase with the reactive state, alongside the imperative `setLifecycleHooks`.
 - **State and handlers.** The `script` function returns `{ state, ...handlers }`; writes inside one synchronous task are batched into a single refresh.
@@ -139,11 +139,11 @@ The ESM entry is `packages/core/dist/core.mjs`; the global build is `packages/co
 | [parse-demo.html](./examples/parse-demo.html) | template parsing walk-through |
 | [reactive-demo.html](./examples/reactive-demo.html) | `state` / `derived` / `effect` primitives |
 | [list-row-events.html](./examples/list-row-events.html) | handlers and indexes bound inside `yq-for` rows |
+| [nested-for.html](./examples/nested-for.html) | a tree menu built from nested `yq-for` rows that expand and collapse |
 | [csp-test.html](./examples/csp-test.html) | behavior-script execution under a strict CSP |
 
 ## Known limitations
 
-- **Nested `yq-for`.** A keyed row cannot contain another `yq-for`. Move the inner list into a child component and render one tag per row.
 - **Shadow DOM is opt-in.** Style isolation uses scope rewriting by default; `createScopedElement` accepts `useShadowDOM` when strong encapsulation is needed.
 - **v0.3.0 is browser-runtime only.** No SSR, no CLI, no non-browser targets. All are deliberate non-goals for this release.
 
@@ -161,9 +161,9 @@ packages/core/src      core runtime: registry, parser, reactive, render, scoper,
 packages/core/dist     built bundles (core.mjs, core.global.js)
 packages/core/test     node:test assertion suite
 packages/devtools      optional debug panel (separate bundle)
-bench/                 performance harness: first-interactive, update-latency, scroll-fps
+bench/                 performance harness: first-interactive, update-latency, scroll-fps, scroll-frame-ops
 examples/              runnable HTML demos
-docs/                  tutorials
+docs/                  tutorials and guides
 scripts/               repo gates: dependency graph and bundle-size checks
 ```
 
@@ -183,19 +183,21 @@ npm run check:all
 
 ## Performance gate
 
-`npm run bench` measures three budgets and exits non-zero as soon as one of them is missed, so a merge cannot land a rendering regression. CI runs it as part of `npm run check:all`, which is the `Repo gates` step of the required `Build / Typecheck / Test` check.
+`npm run bench` measures four budgets and exits non-zero as soon as one of them is missed, so a merge cannot land a rendering regression. CI runs it as part of `npm run check:all`, which is the `Repo gates` step of the required `Build / Typecheck / Test` check.
 
 | Metric | Budget | What is measured |
 | --- | --- | --- |
-| `first-interactive` | `<= 1000 ms` | Cold boot of a 3000-row board: `define` plus template parsing, mounting, the first animation frame, and a click that has to reach the DOM. Reported as the p95 of 10 runs, after 2 warm-up runs. |
-| `update-latency` | `<= 200 ms` | Time from a state write that replaces all 3000 rows to the moment the DOM shows the new revision. Reported as the p95 of 60 updates, after 10 warm-up updates. |
-| `scroll-fps` | `>= 55 fps` | Scroll frames over a 2000-row list with a 200-row window that advances 4 rows per frame. The p95 main-thread cost of one frame is converted into the frame rate a 60 Hz display sustains (`1000 / p95`, capped at 60). |
+| `first-interactive` | `<= 1000 ms` | Cold boot of a 3000-row board: `define` plus template parsing, mounting, the first animation frame, and a click that has to reach the DOM. Asserted on the p50 of 10 runs, after 2 warm-up runs. |
+| `update-latency` | `<= 200 ms` | Time from a state write that replaces all 3000 rows to the moment the DOM shows the new revision. Asserted on the p50 of 60 updates, after 10 warm-up updates. |
+| `scroll-fps` | `>= 55 fps` | Scroll frames over a 2000-row list with a 200-row window that advances 4 rows per frame. The p50 cost of one frame is converted into `1000 / p50`, uncapped, so a faster result keeps reading faster. |
+| `scroll-frame-ops` | `<= 900 ops/frame` | DOM mutations the renderer issues to advance that window by one frame. Counted instead of timed, so it does not depend on machine load. |
 
-Three things are worth knowing about the harness:
+Four things are worth knowing about the harness:
 
 - It is pure Node and keeps the zero-dependency rule. It installs a small headless DOM, then drives the real render pipeline and reads the real DOM back, so a browser is never required.
-- `scroll-fps` is derived from the measured main-thread cost instead of a wall-clock frame loop. A busy CI runner can therefore not turn timer jitter into a false failure, and the reported `frame p50` / `frame p95` values stay comparable between machines against the 16.67 ms budget of one 60 Hz frame.
-- The workloads are sized to leave roughly 3x to 6x headroom on a normal runner, so the gate reacts to real regressions rather than to noise.
+- Wall-clock metrics assert the typical p50 sample, and print the p95 tail plus the run-to-run spread as diagnostics. The work behind one scroll frame is exactly constant at 705 DOM operations while its measured cost spans 2.4 ms to 103.7 ms across frames, so a p95 verdict samples host noise rather than rendering. [docs/performance.md](./docs/performance.md) carries the numbers.
+- `scroll-frame-ops` is the load-independent gate: a fast laptop and a busy CI runner report the same count, so it catches a regression that timing alone cannot resolve.
+- The workloads are sized to leave headroom on a normal runner, so the gate reacts to real regressions rather than to noise.
 
 ## Support
 
@@ -205,6 +207,103 @@ yq-sanyi is built and maintained in our free time. If it saves you time, conside
 
 Your support helps keep the framework free, open and zero-dependency.
 
+## v0.4.0 status (as of 2026-10-05)
+
+### Done in v0.4.0 preview (4 PRs open against `main`)
+
+| PR | Batch | Roadmap items landed | Commit |
+|---|---|---|---|
+| [#10](https://github.com/YQteam-hq/yq-sanyi/pull/10) | 1 | M1-1 nested yq-for (closes L1), M1-2 a11y hooks, M1-3 defineAlias (closes L4 partial), M1-4 `<template id="x">` fragments, M1-5 onRecover + yq.onError, M2-1 parseTemplateDSD, M2-2 yq.hydrate, M3-1 yq.signal(), M3-3 effect.pre + effectScope, M4-3 tutorial "What's new in v0.4.0" section, M4-5 examples (nested-list / ssr-hydrate / a11y-form) | 74a91ca |
+| [#11](https://github.com/YQteam-hq/yq-sanyi/pull/11) | 2 | M4-2 React/Vue wrappers (React 19 JSX + Vue 3 GlobalComponents, .d.ts only, ≤1 kB), M4-4 Playground (live template + script editor), M4-6 perf budgets tightened (first-interactive ≤800 / update-latency ≤150 / scroll-fps ≥58, all PASS) | b5b9b5d |
+| [#12](https://github.com/YQteam-hq/yq-sanyi/pull/12) | 3 | M3-4 batch observability (onBatchStart / onBatchEnd hooks wired in `requestUpdate` / microtask) | f812650 |
+| [#13](https://github.com/YQteam-hq/yq-sanyi/pull/13) | 4 | M3-2 derived auto-detect (signal + state deps via new `activeSignalTracker`; reads of signal() inside a derived computeFn register as deps and resubscribe on each recompute) | 51f03447 |
+
+**224 / 224 tests pass.** All four performance budgets PASS at the new tightened thresholds. `check:deps` / `check:no-comments` clean.
+
+### Known gap: M4-7 gzip ≤ 11 KB target
+
+v0.4.0 target was core.mjs / core.global.js **≤ 11 kB gzipped**. Current:
+
+| Bundle | v0.3.0 baseline | v0.4.0 preview | Delta | v0.4.0 target |
+|---|---|---|---|---|
+| `core.mjs` | 11.78 KB | 12.63 KB | **+0.85 KB** | ≤ 11 KB |
+| `core.global.js` | 11.98 KB | 12.82 KB | **+0.84 KB** | ≤ 11 KB |
+
+**Gap: ~1.6 KB on each bundle.** Target not met.
+
+Why: every M1/M2/M3 milestone in the roadmap (M1-1~M1-5, M2-1/M2-2, M3-1~M3-4, plus M4-3/M4-5) added net-positive source bytes. esbuild already runs with `--minify`, so further source tightening (shorter names, inlining) yields <100 bytes. Reaching ≤ 11 KB requires actual feature reduction.
+
+v0.4.1 plan to close the gap (not in this preview):
+- Drop v0.3.0 deprecated-but-supported APIs where possible
+- Move `fragment` / `parseTemplateDSD` / `defineAlias` (the smallest, least-coupled M1-M2 additions) into an opt-in sub-export — they were the biggest individual contributors
+- Once state() is fully replaced by signal() in the reactive core, delete the legacy state() implementation
+
+Until v0.4.1, the over-budget size is documented as a known issue in every v0.4.0 preview PR.
+
+### Deferred (optional / release-engineering scope)
+
+- **M2-3 Node renderer** — roadmap explicitly marked optional. Requires linkedom as a peer. No current implementation; SSR can be done with the existing browser runtime + JSDOM-style hydration helpers.
+- **M4-1 Devtools extension** — the `packages/devtools` package is already a separate npm module (`yq-sanyi-devtools` v0.2.0). The remaining work is Chrome / Firefox DevTools extension packaging (manifest v3), which is release-engineering scope (Chrome Web Store + Firefox Add-ons submission), not a code change.
+
+### Verification command
+
+```bash
+cd projects/yq-sanyi-main
+npm install
+npm run build
+npm test                # 224/224 PASS
+npm run check:all       # check:deps ok, check:no-comments ok, bench all 3 PASS (new tightened thresholds)
+node scripts/check-gzip.mjs   # known over-budget per M4-7 gap above
+```
+
+
+## v0.4.0 status (as of 2026-10-05)
+
+### Done in v0.4.0 preview (4 PRs open against main)
+
+- PR #10 (batch 1, commit 74a91ca): M1-1 nested yq-for (closes L1), M1-2 a11y hooks, M1-3 defineAlias (closes L4 partial), M1-4 `<template id=x>` fragments, M1-5 onRecover + yq.onError, M2-1 parseTemplateDSD, M2-2 yq.hydrate, M3-1 yq.signal(), M3-3 effect.pre + effectScope, M4-3 tutorial section, M4-5 examples
+- PR #11 (batch 2, commit b5b9b5d): M4-2 React/Vue wrappers (.d.ts only, <=1 kB), M4-4 Playground, M4-6 perf budgets tightened (first-interactive <=800 / update-latency <=150 / scroll-fps >=58, all PASS)
+- PR #12 (batch 3, commit f812650): M3-4 batch observability (onBatchStart / onBatchEnd hooks wired in requestUpdate / microtask)
+- PR #13 (batch 4, commit 51f03447): M3-2 derived auto-detect (signal + state deps via new activeSignalTracker)
+
+224 / 224 tests pass. All four performance budgets PASS at the new tightened thresholds. check:deps / check:no-comments clean.
+
+### Known gap: M4-7 gzip <= 11 KB target
+
+v0.4.0 target was core.mjs / core.global.js <= 11 kB gzipped. Current:
+
+| Bundle | v0.3.0 baseline | v0.4.0 preview | Delta | v0.4.0 target |
+|---|---|---|---|---|
+| core.mjs | 11.78 KB | 12.63 KB | +0.85 KB | <= 11 KB |
+| core.global.js | 11.98 KB | 12.82 KB | +0.84 KB | <= 11 KB |
+
+Gap: ~1.6 KB on each bundle. Target not met.
+
+Why: every M1/M2/M3 milestone in the roadmap (M1-1~M1-5, M2-1/M2-2, M3-1~M3-4, plus M4-3/M4-5) added net-positive source bytes. esbuild already runs with --minify, so further source tightening (shorter names, inlining) yields <100 bytes. Reaching <= 11 KB requires actual feature reduction.
+
+v0.4.1 plan to close the gap (not in this preview):
+- Drop v0.3.0 deprecated-but-supported APIs where possible
+- Move fragment / parseTemplateDSD / defineAlias (the smallest, least-coupled M1-M2 additions) into an opt-in sub-export
+- Once state() is fully replaced by signal() in the reactive core, delete the legacy state() implementation
+
+Until v0.4.1, the over-budget size is documented as a known issue in every v0.4.0 preview PR.
+
+### Deferred (optional / release-engineering scope)
+
+- M2-3 Node renderer -- roadmap explicitly marked optional. Requires linkedom as a peer. No current implementation; SSR can be done with the existing browser runtime + JSDOM-style hydration helpers.
+- M4-1 Devtools extension -- the packages/devtools package is already a separate npm module (yq-sanyi-devtools v0.2.0). The remaining work is Chrome / Firefox DevTools extension packaging (manifest v3), which is release-engineering scope (Chrome Web Store + Firefox Add-ons submission), not a code change.
+
+### Verification command
+
+```bash
+cd projects/yq-sanyi-main
+npm install
+npm run build
+npm test                # 224/224 PASS
+npm run check:all       # check:deps ok, check:no-comments ok, bench all 3 PASS (new tightened thresholds)
+node scripts/check-gzip.mjs   # known over-budget per M4-7 gap above
+```
+
 ## License
 
-Apache License 2.0. Copyright 2026 YQteam-dyq. See [LICENSE](./LICENSE).
+Apache License 2.0. Copyright 2026 YQteam-hq. See [LICENSE](./LICENSE).

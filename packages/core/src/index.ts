@@ -40,6 +40,7 @@ export interface Cdo {
   name: string
   root: SNode
   nodes: SNode[]
+  nodeIndex: Map<number, SNode>
   styleText: string
   scriptFactory: (() => unknown) | null
   slots: Slot[]
@@ -150,12 +151,14 @@ export interface ComponentInstance {
   slotEventCleanups?: Array<() => void>
 }
 
-export function createRenderContext(state: Record<string, any>, slots: Slot[]): RenderContext {
+export function createRenderContext(state: Record<string, any>, slots: Slot[], bindings?: RowEventBindings): RenderContext {
   return {
     state,
     slots,
     nodeCache: new Map(),
-    listElements: new Map()
+    listElements: new Map(),
+    handlers: bindings?.handlers,
+    host: bindings?.host || undefined
   }
 }
 
@@ -339,7 +342,7 @@ function expandFragments(html: string): string {
   return curr
 }
 
-function parseTemplate(name: string, template: string): { root: SNode; nodes: SNode[]; slots: Slot[] } {
+function parseTemplate(name: string, template: string): { root: SNode; nodes: SNode[]; nodeIndex: Map<number, SNode>; slots: Slot[] } {
   template = expandFragments(template)
   const slots: Slot[] = []
   const nodes: SNode[] = []
@@ -596,7 +599,10 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
     for (const c of n.children) checkNest(c, outerKey)
   }
   checkNest(root, null)
-  return { root, nodes, slots }
+  const nodeIndex = new Map<number, SNode>()
+  for (const node of nodes) nodeIndex.set(node.id, node)
+
+  return { root, nodes, nodeIndex, slots }
 }
 
 function createScriptFactory(script: unknown): (() => unknown) | null {
@@ -617,7 +623,7 @@ function createScriptFactory(script: unknown): (() => unknown) | null {
   return null
 }
 
-import { renderSkeleton, populateNodeCache, fillSlots, updateSlots, createComponent, hydrate, mountComponent, updateComponent, unmountComponent, scoper, withErrorBoundary, getErrorBoundaryInfo, resetErrorBoundary, generateScopedCSS, injectStyle, removeStyle, updateTheme, getThemeVariables, resetTheme, addGlobalStyle, removeGlobalStyle, getGlobalStyles, clearGlobalStyles, createScopedElement } from './renderer.js'
+import { renderSkeleton, populateNodeCache, fillSlots, updateSlots, createComponent, hydrate, mountComponent, updateComponent, unmountComponent, scoper, withErrorBoundary, getErrorBoundaryInfo, resetErrorBoundary, generateScopedCSS, injectStyle, removeStyle, updateTheme, getThemeVariables, resetTheme, addGlobalStyle, removeGlobalStyle, getGlobalStyles, clearGlobalStyles, createScopedElement, RowEventBindings } from './renderer.js'
 
 let effectStack: Effect[] = []
 let allEffects: Effect[] = []
@@ -964,11 +970,12 @@ function lookup(name: string): { name: string; cdo: Cdo } | undefined {
   if (!definition) return undefined
 
   if (!definition.cdo) {
-    const { root, nodes, slots } = parseTemplate(resolved, definition.template)
+    const { root, nodes, nodeIndex, slots } = parseTemplate(resolved, definition.template)
     definition.cdo = {
       name: resolved,
       root,
       nodes,
+      nodeIndex,
       styleText: definition.style,
       scriptFactory: createScriptFactory(definition.script),
       slots,
