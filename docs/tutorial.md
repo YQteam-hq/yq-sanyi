@@ -138,7 +138,7 @@ Add `yq-for="item in items"` to a container element. The framework renders one c
 </ul>
 ```
 
-`yq-key` names the per-item stable field. Rows are matched by key and reused instead of being rebuilt, which keeps stateful content and minimizes DOM writes. A keyed row should not be nested inside another `yq-for` — render the inner list through a child component instead. Keys are expected to be unique per item; when a value repeats, the rows are matched one item at a time in document order and every row left over is released, but only unique keys give stable reuse.
+`yq-key` names the per-item stable field. Rows are matched by key and reused instead of being rebuilt, which keeps stateful content and minimizes DOM writes. A keyed row may hold another `yq-for`: the inner list renders once per outer row, each level keeps its own item and its own index, and an inner row reads the item it holds together with the item of the row around it. [examples/nested-for.html](../examples/nested-for.html) builds an expandable tree menu that way. Keys are expected to be unique per item; when a value repeats, the rows are matched one item at a time in document order and every row left over is released, but only unique keys give stable reuse.
 
 Write `yq-for="(item, index) in items"` when a row needs its position in the list:
 
@@ -440,18 +440,62 @@ The `style` field is rewritten so its selectors only match inside the component'
 </script>
 ```
 
-Components read theme variables with CSS fallbacks. Swap a theme for the whole page through the scoper:
+### How a style is scoped
 
-```html
-<script>
-  yq.scoper.updateTheme({
-    'border-color': '#2563eb',
-    'text-muted': '#1e40af'
-  })
-</script>
+`define` gives every component definition a scope id, and the `style` string is rewritten before it reaches the page: each selector gets the scope attribute appended, so `.panel` becomes `.panel[data-yq-scope="..."]` and can only match nodes the framework marked with the same scope. Three rules are worth knowing:
+
+- A selector that starts with `*` is left untouched, so a component cannot scope a page-wide reset by accident.
+- Pseudo-classes and pseudo-elements stay attached to the selector they extend, so `.panel:hover` becomes `.panel[data-yq-scope="..."]:hover`.
+- The rewritten rule set is injected once per definition. A second instance only raises a reference count, and the `<style>` element disappears when the count reaches zero, which is what happens when the last instance unmounts.
+
+The rewriting is a pure function, so it can be inspected without mounting anything:
+
+```js
+const scoped = yq.scoper.generateScopedCSS('.panel { color: red; }', 'my-scope')
 ```
 
-Page-level global styles are registered explicitly with `yq.scoper.addGlobalStyle(css, id)` and removed with `removeGlobalStyle(id)`. By default styling relies on scope rewriting, which keeps CSS variables and inheritance working as usual. Shadow DOM is available per component through `createScopedElement(..., { useShadowDOM: true })` when you need hard encapsulation.
+`scoped` then reads `.panel[data-yq-scope="my-scope"] { color: red; }`. `yq.scoper.injectStyle` and `yq.scoper.removeStyle` expose the injection lifecycle the runtime uses internally, and the record returned by `injectStyle` reports how many instances currently hold the style.
+
+### Page-level styles
+
+Only the `style` field of a definition is rewritten. Rules that should reach the whole page are registered explicitly and inserted verbatim:
+
+```js
+yq.scoper.addGlobalStyle('.demo-note { padding: 12px; }', 'demo-note')
+yq.scoper.getGlobalStyles()
+yq.scoper.removeGlobalStyle('demo-note')
+yq.scoper.clearGlobalStyles()
+```
+
+The id is optional; without one the registry derives `global-<timestamp>`. `getGlobalStyles()` returns a copy of the registry, so changing the result never changes the page.
+
+### Theme variables
+
+Components read theme variables with CSS fallbacks, so they keep painting correctly before any theme is applied. `updateTheme` writes every entry to a `--yq-<key>` custom property on the document element:
+
+```js
+yq.scoper.updateTheme({
+  'border-color': '#2563eb',
+  'text-muted': '#1e40af'
+})
+```
+
+Every component that reads those variables repaints at once, without touching component code. `getThemeVariables()` returns the current map, and `resetTheme()` drops what you set and applies the built-in palette:
+
+| Variable | Default |
+| --- | --- |
+| `--yq-primary-color` | `#3b82f6` |
+| `--yq-secondary-color` | `#6b7280` |
+| `--yq-background-color` | `#ffffff` |
+| `--yq-text-color` | `#1f2937` |
+| `--yq-border-color` | `#e5e7eb` |
+| `--yq-shadow-color` | `rgba(0, 0, 0, 0.1)` |
+
+### Scope rewriting or Shadow DOM
+
+By default, styling relies on scope rewriting, which keeps CSS variables and inheritance working as usual. For hard encapsulation, `createScopedElement(element, scopeId, { useShadowDOM: true })` attaches a shadow root, moves a clone into it and marks every node with the scope attribute. Choose it when a component must not be reachable from page-level selectors; keep the default when theming and inheritance matter more.
+
+[examples/scoped-theme.html](../examples/scoped-theme.html) exercises the whole surface: two instances of one component share a single style injection, a switcher repaints both through `updateTheme`, and a page-level rule is registered and removed again.
 
 ## Reactive primitives
 
@@ -584,4 +628,6 @@ The declarative path is the primary one, but the runtime also exports an imperat
 - Browse the [features and API overview](../README.md).
 - Open `examples/full-demo.html` for a one-page showcase of tags, events, lists and state.
 - Browse [examples/list-row-events.html](../examples/list-row-events.html) for row handlers, row indexes and keyed reconciliation.
+- Browse [examples/nested-for.html](../examples/nested-for.html) for a tree menu built from nested `yq-for` rows that expand and collapse.
+- Browse [examples/scoped-theme.html](../examples/scoped-theme.html) for scoped styles, theme variables and the page-level style registry.
 - Read the Chinese version of this tutorial: [Chinese tutorial](./i18n/zh-CN/tutorial.md).
