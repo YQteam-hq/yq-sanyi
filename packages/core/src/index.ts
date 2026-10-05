@@ -706,7 +706,14 @@ function triggerState(state: State<any>): void {
   scheduleFlush()
 }
 
-function signal<T>(initial: T) {
+export interface Signal<T> {
+  get(): T
+  set(next: T): void
+  peek(): T
+  subscribe(fn: () => void): () => void
+}
+
+function signal<T>(initial: T): Signal<T> {
   let value = initial
   const subscribers = new Set<() => void>()
   const sig = {
@@ -813,6 +820,11 @@ function derived<T>(computeFn: () => T): Derived<T> {
   return derivedObj
 }
 
+export interface EffectScope {
+  run<T>(fn: () => T): T | undefined
+  stop(): void
+}
+
 function effectPre(fn: () => void | (() => void)): () => void {
   const cleanup = fn()
   return () => {
@@ -820,7 +832,7 @@ function effectPre(fn: () => void | (() => void)): () => void {
   }
 }
 
-function effectScope() {
+function effectScope(): EffectScope {
   let stopped = false
   const cleanups: Array<() => void> = []
   return {
@@ -907,7 +919,12 @@ function dumpReactiveState(): { states: any[]; effects: any[] } {
   return { states, effects }
 }
 
-function parseTemplateDSD(src: string) {
+export interface ParsedDSD {
+  mode: 'open' | 'closed' | null
+  content: string
+}
+
+function parseTemplateDSD(src: string): ParsedDSD {
   const match = src.match(/<template\s+shadowrootmode="(open|closed)"\s*>([\s\S]*?)<\/template>/)
   if (!match) return { mode: null, content: '' }
   return { mode: match[1] as 'open' | 'closed', content: match[2] }
