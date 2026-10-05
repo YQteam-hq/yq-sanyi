@@ -1,6 +1,6 @@
 {
   "name": "yq-sanyi-core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "yq-sanyi core runtime: component registry, reactive state, render pipeline, lifecycle. Optional `linkedom` peer unlocks packages/core/node/renderToString.mjs for SSR without forcing it on browser-only users.",

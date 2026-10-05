@@ -8,7 +8,6 @@ test('hydrate throws on missing element by selector', () => {
 })
 
 test('hydrate throws when component is not registered and no definition', () => {
-  // This test relies on document existing; if not, skip
   if (typeof document === 'undefined') return
   document.body.innerHTML = '<yq-hydrate-unknown></yq-hydrate-unknown>'
   assert.throws(() => hydrate('yq-hydrate-unknown'), /component not registered/)
@@ -17,6 +16,5 @@ test('hydrate throws when component is not registered and no definition', () => 
 test('hydrate resolves a string selector to an element', () => {
   if (typeof document === 'undefined') return
   document.body.innerHTML = ''
-  // Without registration the call throws; this only validates resolve+throw
   assert.throws(() => hydrate('yq-hydrate-noop'), /component not registered/)
 })

@@ -1,4 +1,4 @@
-export const version = '0.3.0'
+export const version = '0.4.0'
 
 import { getDebugManager } from './debug-manager-simple.js'
 import { ErrorBoundary } from './error-boundary.js'
@@ -591,14 +591,6 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
 
   if (root.cond) error('yq-if / yq-show on the root element is not supported')
 
-  function checkNest(n: SNode, outerKey: boolean | null): void {
-    if (n.list) {
-      if (outerKey === false) error('nested yq-for needs outer yq-key')
-      outerKey = n.list.keyProp != null
-    }
-    for (const c of n.children) checkNest(c, outerKey)
-  }
-  checkNest(root, null)
   const nodeIndex = new Map<number, SNode>()
   for (const node of nodes) nodeIndex.set(node.id, node)
 

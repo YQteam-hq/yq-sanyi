@@ -468,7 +468,7 @@ function fillListRow(cdo: Cdo, containerNode: SNode, rowElement: Element, itemSt
   indexRow(rowElement)
   for (const childSlot of cdo.slots) {
     if (childSlot.kind === 'event') continue
-    if (!rowIds.has(childSlot.nodeId)) continue
+    if (!containerIds.has(childSlot.nodeId)) continue
     if (childSlot.nodeId === containerNode.id && childSlot.kind === 'text' && containerNode.children.length > 0) continue
     const target = childSlot.nodeId === containerNode.id ? rowElement : rowCache.get(childSlot.nodeId)
     if (!target) continue
