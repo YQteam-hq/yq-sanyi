@@ -2,6 +2,7 @@ export const version = '0.3.0'
 
 import { getDebugManager } from './debug-manager-simple.js'
 import { ErrorBoundary } from './error-boundary.js'
+import { onError, _resetErrorHandlers } from './error-bus.js'
 import { registerElement } from './elements.js'
 
 export interface ComponentDefinition {
@@ -219,6 +220,8 @@ export function createStateProxy<T extends object>(target: T, onChange: () => vo
 }
 
 const definitions = new Map<string, ComponentDefinition>()
+const aliases = new Map<string, string>()
+const fragments = new Map<string, string>()
 
 function parsePath(path: string): string[] {
   const parts = path.split('.')
@@ -322,10 +325,24 @@ function parseListSpec(value: string, keyAttr: string | null): ListSpec {
   return { itemVar, indexVar, itemsPath, keyProp: keyAttr }
 }
 
+function expandFragments(html: string): string {
+  let prev = ''
+  let curr = html
+  while (prev !== curr) {
+    prev = curr
+    curr = curr.replace(/<template\s+id="([^"]+)"\s*>([\s\S]*?)<\/template>/g, (_m, id: string) => {
+      const frag = fragments.get(id)
+      if (frag === undefined) throw new Error('fragment not registered: ' + id)
+      return frag
+    })
+  }
+  return curr
+}
+
 function parseTemplate(name: string, template: string): { root: SNode; nodes: SNode[]; slots: Slot[] } {
+  template = expandFragments(template)
   const slots: Slot[] = []
   const nodes: SNode[] = []
-  let inList = false
   let nodeId = 0
 
   function error(message: string): never {
@@ -334,8 +351,6 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
 
   function handleAttr(node: SNode, attr: string, value: string): void {
     if (attr === 'yq-for') {
-      if (inList) error('nested yq-for not allowed')
-      inList = true
       node.list = parseListSpec(value, node.staticAttrs['yq-key'] || null)
       delete node.staticAttrs['yq-key']
     } else if (attr === 'yq-key') {
@@ -573,6 +588,14 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
 
   if (root.cond) error('yq-if / yq-show on the root element is not supported')
 
+  function checkNest(n: SNode, outerKey: boolean | null): void {
+    if (n.list) {
+      if (outerKey === false) error('nested yq-for needs outer yq-key')
+      outerKey = n.list.keyProp != null
+    }
+    for (const c of n.children) checkNest(c, outerKey)
+  }
+  checkNest(root, null)
   return { root, nodes, slots }
 }
 
@@ -594,11 +617,13 @@ function createScriptFactory(script: unknown): (() => unknown) | null {
   return null
 }
 
-import { renderSkeleton, populateNodeCache, fillSlots, updateSlots, createComponent, mountComponent, updateComponent, unmountComponent, scoper, withErrorBoundary, getErrorBoundaryInfo, resetErrorBoundary, generateScopedCSS, injectStyle, removeStyle, updateTheme, getThemeVariables, resetTheme, addGlobalStyle, removeGlobalStyle, getGlobalStyles, clearGlobalStyles, createScopedElement } from './renderer.js'
+import { renderSkeleton, populateNodeCache, fillSlots, updateSlots, createComponent, hydrate, mountComponent, updateComponent, unmountComponent, scoper, withErrorBoundary, getErrorBoundaryInfo, resetErrorBoundary, generateScopedCSS, injectStyle, removeStyle, updateTheme, getThemeVariables, resetTheme, addGlobalStyle, removeGlobalStyle, getGlobalStyles, clearGlobalStyles, createScopedElement } from './renderer.js'
 
 let effectStack: Effect[] = []
 let allEffects: Effect[] = []
 let allDeriveds: any[] = []
+// M3-2: signal-aware derived tracker (parallel to effectStack for state())
+let activeSignalTracker: { signals: Set<any> } | null = null
 let batchQueue: Array<() => void> = []
 let isFlushing = false
 let flushScheduled = false
@@ -675,6 +700,29 @@ function triggerState(state: State<any>): void {
   scheduleFlush()
 }
 
+function signal<T>(initial: T) {
+  let value = initial
+  const subscribers = new Set<() => void>()
+  const sig = {
+    get(): T {
+      if (activeSignalTracker) activeSignalTracker.signals.add(sig)
+      return value
+    },
+    set(next: T): void {
+      if (!Object.is(next, value)) {
+        value = next
+        for (const s of subscribers) s()
+      }
+    },
+    peek(): T { return value },
+    subscribe(fn: () => void): () => void {
+      subscribers.add(fn)
+      return () => { subscribers.delete(fn) }
+    }
+  }
+  return sig
+}
+
 function state<T>(initialValue: T, componentName?: string): State<T> {
   let value = initialValue
   const stateObj: State<T> = {
@@ -711,6 +759,8 @@ function state<T>(initialValue: T, componentName?: string): State<T> {
 function derived<T>(computeFn: () => T): Derived<T> {
   let cachedValue: T | undefined
   const dependencies: State<any>[] = []
+  const signalSubs: Array<() => void> = []
+  const tracker = { signals: new Set<any>() }
   const derivedObj: Derived<T> & { dirty: boolean; computing: boolean } = {
     dirty: true,
     computing: false,
@@ -721,14 +771,22 @@ function derived<T>(computeFn: () => T): Derived<T> {
       if (this.dirty) {
         this.computing = true
         effectStack.push({ fn: () => {}, dependencies: [] })
+        activeSignalTracker = tracker
         try {
           cachedValue = computeFn()
           this.dirty = false
         } finally {
+          activeSignalTracker = null
           const currentEffect = effectStack.pop()
           if (currentEffect) {
             dependencies.length = 0
             dependencies.push(...currentEffect.dependencies)
+          }
+          // (Re)subscribe to any new signals read this pass
+          for (const u of signalSubs) u()
+          signalSubs.length = 0
+          for (const s of tracker.signals) {
+            signalSubs.push((s as any).subscribe(() => { this.dirty = true }))
           }
           this.computing = false
         }
@@ -740,11 +798,36 @@ function derived<T>(computeFn: () => T): Derived<T> {
       const idx = allDeriveds.indexOf(derivedObj as any)
       if (idx > -1) allDeriveds.splice(idx, 1)
       dependencies.length = 0
+      for (const u of signalSubs) u()
+      signalSubs.length = 0
     },
     dependencies
   }
   allDeriveds.push(derivedObj as any)
   return derivedObj
+}
+
+function effectPre(fn: () => void | (() => void)): () => void {
+  const cleanup = fn()
+  return () => {
+    if (typeof cleanup === 'function') cleanup()
+  }
+}
+
+function effectScope() {
+  let stopped = false
+  const cleanups: Array<() => void> = []
+  return {
+    run<T>(fn: () => T): T | undefined {
+      if (stopped) return undefined
+      return fn()
+    },
+    stop(): void {
+      stopped = true
+      for (const c of cleanups) c()
+      cleanups.length = 0
+    }
+  }
 }
 
 function effect(fn: () => void | (() => void), componentName?: string): () => void {
@@ -818,6 +901,33 @@ function dumpReactiveState(): { states: any[]; effects: any[] } {
   return { states, effects }
 }
 
+function parseTemplateDSD(src: string) {
+  const match = src.match(/<template\s+shadowrootmode="(open|closed)"\s*>([\s\S]*?)<\/template>/)
+  if (!match) return { mode: null, content: '' }
+  return { mode: match[1] as 'open' | 'closed', content: match[2] }
+}
+
+function fragment(id: string, html: string): void {
+  if (typeof id !== 'string' || !/^[a-z][a-z0-9._-]*$/.test(id) || !id.includes('-')) {
+    throw new TypeError('fragment id must be a valid identifier: ' + id)
+  }
+  fragments.set(id, html)
+}
+
+function defineAlias(displayName: string, realName: string): void {
+  if (!isValidTagName(displayName)) {
+    throw new TypeError('alias display name must be a valid custom element name: ' + displayName)
+  }
+  if (!definitions.has(realName)) {
+    throw new Error('alias target not defined: ' + realName)
+  }
+  if (aliases.has(displayName)) {
+    throw new Error('alias already registered: ' + displayName)
+  }
+  aliases.set(displayName, realName)
+  registerElement(displayName)
+}
+
 function define(name: string, definition: ComponentDefinition): ComponentDefinition {
   if (typeof name !== 'string' || name.length === 0) {
     throw new TypeError('component name must be a non-empty string')
@@ -850,13 +960,14 @@ function lookup(name: string): { name: string; cdo: Cdo } | undefined {
   if (typeof name !== 'string' || name.length === 0) {
     throw new TypeError('component name must be a non-empty string')
   }
-  const definition = definitions.get(name) as CachedComponentDefinition | undefined
+  const resolved = aliases.get(name) ?? name
+  const definition = definitions.get(resolved) as CachedComponentDefinition | undefined
   if (!definition) return undefined
-  
+
   if (!definition.cdo) {
-    const { root, nodes, slots } = parseTemplate(name, definition.template)
+    const { root, nodes, slots } = parseTemplate(resolved, definition.template)
     definition.cdo = {
-      name,
+      name: resolved,
       root,
       nodes,
       styleText: definition.style,
@@ -865,8 +976,8 @@ function lookup(name: string): { name: string; cdo: Cdo } | undefined {
       scopeId: generateScopeId()
     }
   }
-  
-  return { name, cdo: definition.cdo! }
+
+  return { name: resolved, cdo: definition.cdo! }
 }
 
 function generateScopeId(): string {
@@ -907,16 +1018,23 @@ function getStateSnapshot(instance: ComponentInstance): Record<string, any> {
 
 export { 
   generateScopeId,
-  define, 
-  lookup, 
-  parseTemplate, 
+  define,
+  defineAlias,
+  fragment,
+  hydrate,
+  lookup,
+  parseTemplate,
+  parseTemplateDSD, 
   createScriptFactory, 
   renderSkeleton, 
   fillSlots, 
   updateSlots, 
-  state, 
-  derived, 
-  effect, 
+  state,
+  derived,
+  effect,
+  effectPre,
+  effectScope,
+  signal, 
   dumpReactiveState,
   resetReactiveState,
   createComponent, 
@@ -932,5 +1050,7 @@ export {
   ErrorBoundary,
   withErrorBoundary,
   getErrorBoundaryInfo,
-  resetErrorBoundary 
+  resetErrorBoundary,
+  onError,
+  _resetErrorHandlers
 }
