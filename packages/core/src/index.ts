@@ -628,6 +628,8 @@ import { renderSkeleton, populateNodeCache, fillSlots, updateSlots, createCompon
 let effectStack: Effect[] = []
 let allEffects: Effect[] = []
 let allDeriveds: any[] = []
+// M3-2: signal-aware derived tracker (parallel to effectStack for state())
+let activeSignalTracker: { signals: Set<any> } | null = null
 let batchQueue: Array<() => void> = []
 let isFlushing = false
 let flushScheduled = false
@@ -714,8 +716,11 @@ export interface Signal<T> {
 function signal<T>(initial: T): Signal<T> {
   let value = initial
   const subscribers = new Set<() => void>()
-  return {
-    get(): T { return value },
+  const sig = {
+    get(): T {
+      if (activeSignalTracker) activeSignalTracker.signals.add(sig)
+      return value
+    },
     set(next: T): void {
       if (!Object.is(next, value)) {
         value = next
@@ -728,6 +733,7 @@ function signal<T>(initial: T): Signal<T> {
       return () => { subscribers.delete(fn) }
     }
   }
+  return sig
 }
 
 function state<T>(initialValue: T, componentName?: string): State<T> {
@@ -766,6 +772,8 @@ function state<T>(initialValue: T, componentName?: string): State<T> {
 function derived<T>(computeFn: () => T): Derived<T> {
   let cachedValue: T | undefined
   const dependencies: State<any>[] = []
+  const signalSubs: Array<() => void> = []
+  const tracker = { signals: new Set<any>() }
   const derivedObj: Derived<T> & { dirty: boolean; computing: boolean } = {
     dirty: true,
     computing: false,
@@ -776,14 +784,22 @@ function derived<T>(computeFn: () => T): Derived<T> {
       if (this.dirty) {
         this.computing = true
         effectStack.push({ fn: () => {}, dependencies: [] })
+        activeSignalTracker = tracker
         try {
           cachedValue = computeFn()
           this.dirty = false
         } finally {
+          activeSignalTracker = null
           const currentEffect = effectStack.pop()
           if (currentEffect) {
             dependencies.length = 0
             dependencies.push(...currentEffect.dependencies)
+          }
+          // (Re)subscribe to any new signals read this pass
+          for (const u of signalSubs) u()
+          signalSubs.length = 0
+          for (const s of tracker.signals) {
+            signalSubs.push((s as any).subscribe(() => { this.dirty = true }))
           }
           this.computing = false
         }
@@ -795,6 +811,8 @@ function derived<T>(computeFn: () => T): Derived<T> {
       const idx = allDeriveds.indexOf(derivedObj as any)
       if (idx > -1) allDeriveds.splice(idx, 1)
       dependencies.length = 0
+      for (const u of signalSubs) u()
+      signalSubs.length = 0
     },
     dependencies
   }
