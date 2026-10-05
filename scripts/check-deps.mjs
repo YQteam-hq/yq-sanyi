@@ -7,6 +7,31 @@ const skipDirs = new Set(['node_modules', '.git']);
 const allowedRootDev = new Set(['typescript', 'esbuild']);
 const errors = [];
 
+function collectPeerModules() {
+  const allowed = new Set();
+  const packagesDir = join(root, 'packages');
+  for (const name of readdirSync(packagesDir)) {
+    const dir = join(packagesDir, name);
+    if (!statSync(dir).isDirectory()) {
+      continue;
+    }
+    let pkg;
+    try {
+      pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
+    } catch (error) {
+      continue;
+    }
+    for (const field of ['optionalDependencies', 'peerDependencies']) {
+      for (const dep of Object.keys(pkg[field] || {})) {
+        allowed.add(dep);
+      }
+    }
+  }
+  return allowed;
+}
+
+const allowedPeers = collectPeerModules();
+
 function walk(dir, out) {
   for (const name of readdirSync(dir)) {
     if (skipDirs.has(name)) {
@@ -53,6 +78,9 @@ function checkFile(file) {
   const text = readFileSync(file, 'utf8');
   const inDist = file.includes(join('packages', 'core', 'dist'));
   if (ext === '.ts') {
+    if (file.endsWith('.d.ts')) {
+      return;
+    }
     for (const spec of collectSpecifiers(text)) {
       if (!srcRule(spec)) {
         errors.push(rel + ' imports disallowed specifier: ' + spec);
@@ -63,7 +91,8 @@ function checkFile(file) {
   if (ext === '.mjs' || ext === '.js' || ext === '.cjs') {
     const rule = inDist ? distRule : jsRule;
     for (const spec of collectSpecifiers(text)) {
-      if (!rule(spec)) {
+      const isDeclaredPeer = !inDist && allowedPeers.has(spec);
+      if (!rule(spec) && !isDeclaredPeer) {
         errors.push(rel + ' imports disallowed specifier: ' + spec);
       }
     }

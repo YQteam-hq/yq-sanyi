@@ -2,11 +2,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { renderToString, renderFragmentToString, version } from '../node/renderToString.mjs';
 
-// Smoke tests only. Full mount via createComponent + mountComponent currently
-// throws inside the minified core bundle (inlined helpers, global document
-// assumptions). The test file documents the API surface and validates
-// inputs. Real SSR coverage will land with core refactor.
-
 test('M2-3 renderToString: empty name throws', () => {
   assert.throws(() => renderToString(''), /non-empty/);
 });
@@ -21,7 +16,7 @@ test('M2-3 renderToString: non-object props throws', () => {
 
 test('M2-3 renderToString: returns structured pending result', () => {
   const r = renderToString('yq-smoke', { template: '<i>x</i>', style: '', script: () => ({}) }, { foo: 'bar' });
-  assert.equal(r.ok, false, 'mount path currently disabled; see header comment');
+  assert.equal(r.ok, false, 'mount path currently disabled');
   assert.equal(r.hostTag, 'yq-smoke');
 });
 

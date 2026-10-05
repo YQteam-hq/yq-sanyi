@@ -2,10 +2,6 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { define, signal, effectPre, effectScope, defineAlias, fragment, hydrate, parseTemplateDSD, onError } from '../dist/core.mjs'
 
-// M3-4 batch observability: verify onBatchStart / onBatchEnd are part of the
-// public API contract. We exercise them via the scheduleFlush / flushBatchQueue
-// path by mutating a tracked signal and observing the batch boundary.
-
 test('emitted bundle exports include the signal/derived/effect APIs', () => {
   assert.equal(typeof signal, 'function', 'yq.signal must be exported')
   assert.equal(typeof effectPre, 'function', 'yq.effectPre must be exported')

@@ -2,8 +2,6 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { signal, derived, state, effectPre } from '../dist/core.mjs'
 
-// M3-2 derived auto-detect: signal values read in computeFn register as deps
-
 test('derived re-runs when a read signal changes', () => {
   const s = signal(10)
   let computeCount = 0
@@ -41,7 +39,6 @@ test('derived mixes signal and state dependencies', () => {
   sig.set(100)
   assert.equal(d.value, 120, 'signal change invalidates')
   st.value = 5
-  // state() change triggers via triggerState; derived should also pick up
   assert.equal(d.value, 105)
   assert.ok(computeCount >= 2, 'recomputed at least twice')
 })
@@ -50,11 +47,9 @@ test('derived disposing clears signal subscriptions', () => {
   const s = signal(1)
   let fired = false
   const d = derived(() => { s.get(); return 0 })
-  d.value // initial compute
+  d.value
   d.dispose()
   s.set(2)
-  // If subscription wasn't cleared, derived would have flagged dirty and
-  // fired on next .value read; but it's disposed. We just check no throw.
   assert.equal(fired, false, 'no subscriber fired after dispose')
 })
 

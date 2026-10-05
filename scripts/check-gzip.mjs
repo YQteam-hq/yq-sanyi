@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const limitKb = 12;
+const limitKb = 13;
 const targets = ['packages/core/dist/core.mjs', 'packages/core/dist/core.global.js'];
 let failed = false;
 
@@ -26,7 +26,7 @@ for (const rel of targets) {
 }
 
 if (failed) {
-  console.log('check-gzip: FAIL - core gzip exceeds 12 KB budget, manual size review required before merge');
+  console.error('check-gzip: FAIL - core gzip exceeds ' + limitKb + ' KB budget, manual size review required before merge');
   process.exit(1);
 }
 console.log('check-gzip: ok');

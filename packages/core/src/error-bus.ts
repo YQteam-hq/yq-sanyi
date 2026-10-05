@@ -15,7 +15,6 @@ export function emitError(error: Error, errorInfo: any): void {
     try {
       h(error, errorInfo)
     } catch (_e) {
-      // handler errors must not propagate
     }
   }
 }

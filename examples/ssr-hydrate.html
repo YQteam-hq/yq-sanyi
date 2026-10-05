@@ -20,7 +20,6 @@
     然后 <code>hydrate</code> 接管已存在的 DOM（无需重建）。
   </div>
 
-  <!-- SSR 阶段产出的 HTML：shadowroot 模板 + 静态外层 -->
   <div id="app">
     <yq-card>
       <template shadowrootmode="open">
@@ -34,7 +33,6 @@
 
   <script src="../packages/core/dist/core.global.js"></script>
   <script>
-    // 定义组件
     yq.define('yq-card', {
       template: '<div><slot></slot></div>',
       style: '',
@@ -48,18 +46,14 @@
       }
     })
 
-    // M2-1: 解析 DSD 模板（用于 SSR 端生成 HTML）
     const dsd = yq.parseTemplateDSD(document.querySelector('yq-card').innerHTML)
     console.log('parseTemplateDSD →', dsd)
 
-    // M2-2: 就地 hydrate 已有 DOM
     yq.hydrate('#app yq-card')
 
-    // 演示 reactive 更新：改 state 会同步到 DOM
     setTimeout(() => {
       const instance = yq.lookup('yq-card')
       if (instance && instance.cdo) {
-        // 通过 _yqInstance 找到组件实例并触发更新
         const host = document.querySelector('yq-card')
         if (host && host._yqInstance) {
           host._yqInstance.state.title = 'Hydrated + Reactive'

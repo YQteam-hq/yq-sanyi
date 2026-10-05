@@ -702,12 +702,14 @@ yq.hydrate('#app yq-card')
 
 ```ts
 const count = yq.signal(0)
-count.get()      // → 0
-count.set(5)      // 触发订阅
-count.peek()     // → 5 (不触发订阅)
-const off = count.subscribe(() => console.log(count.get()))
-off()            // unsubscribe
+count.get()
+count.set(5)
+count.peek()
+const off = count.subscribe(() => count.get())
+off()
 ```
+
+Here `get()` returns `0`, `set(5)` notifies subscribers, `peek()` returns `5` without notifying, and calling `off()` unsubscribes.
 
 - `set` 用 `Object.is` 做相等性判定；同值不通知
 - 与现有 `state()` 并存，`state` 标记 deprecated-but-supported
@@ -715,13 +717,15 @@ off()            // unsubscribe
 ### `yq.effectPre(fn)` + `yq.effectScope()` (M3-3)
 
 ```ts
-const stop = yq.effectPre(() => { /* sync run */ return cleanup })
+const stop = yq.effectPre(() => { return cleanup })
 stop()
 
 const scope = yq.effectScope()
-scope.run(() => { /* … */ })
-scope.stop()    // 后续 run 是 no-op，stop 幂等
+scope.run(() => { })
+scope.stop()
 ```
+
+`effectPre` runs synchronously and returns a stop function; `effectScope` groups effects for invalidation, a `run()` after `stop()` is a no-op, and `stop` is idempotent.
 
 ### Examples
 
