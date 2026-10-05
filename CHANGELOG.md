@@ -45,12 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `react`, `vue`) and `.d.ts` type declarations are no longer flagged as third-party
   runtime dependencies.
 
-### Known issues
-
-- The gzipped core bundle is over the M4-7 ≤ 11 KB target (`core.mjs` ~12.6 KB,
-  `core.global.js` ~12.8 KB). The `check-gzip` ceiling was raised from 12 KB to
-  13 KB so the gate passes for this release. Size reduction is deferred to
-  v0.4.1; see the README "Known gap: M4-7" section.
 
 ## [0.3.0] - 2026-09-22
 
@@ -115,6 +109,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Internal prototype pages under `examples/prototypes/` and `tests/*.html`.
 
 [0.4.0]: https://github.com/YQteam-hq/yq-sanyi/releases/tag/v0.4.0
+
+## [0.4.1] - 2026-10-06
+
+### Fixed
+
+- The gzipped core bundle is back under the original M4-7 <= 11 KB target (core.mjs ~10 KB, core.global.js ~10 KB). The check-gzip ceiling in scripts/check-gzip.mjs is restored to 11 KB.
+
+### Changed
+
+- Debug instrumentation moved out of `packages/core` and into `packages/devtools`. The debug panel, debug manager and singleton (formerly `packages/core/src/debug-*.ts`) now live under `packages/devtools/src/` and are re-exported from `packages/devtools`. `packages/core/src/index.ts` ships a noop `getDebugManager()` stub so existing call sites keep compiling without pulling in the full devtools into the production bundle.
+
+### Removed
+
+- The "Known gap: M4-7" section in the README.
+- The "Known issues" entry in the v0.4.0 changelog block.
+
+
 [0.3.0]: https://github.com/YQteam-hq/yq-sanyi/releases/tag/v0.3.0
 [0.2.1]: https://github.com/YQteam-hq/yq-sanyi/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YQteam-hq/yq-sanyi/releases/tag/v0.2.0
+
+[0.4.1]: https://github.com/YQteam-hq/yq-sanyi/releases/tag/v0.4.1
