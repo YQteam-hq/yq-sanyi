@@ -45,7 +45,7 @@ yq.define('yq-counter', {
 克隆仓库，先构建一次 bundle，之后写普通 HTML 即可：
 
 ```bash
-git clone https://github.com/YQteam-dyq/yq-sanyi.git
+git clone https://github.com/YQteam-hq/yq-sanyi.git
 cd yq-sanyi
 npm install
 npm run build
@@ -105,7 +105,7 @@ npm run build
 ## v0.3.0 现有能力
 
 - **声明式组件。** `define` 注册原生自定义元素；标签自动挂载、自动更新、自动清理。
-- **模板。** 文本绑定 `{{ 路径 }}`、整值属性绑定、布尔属性、带稳定 `yq-key` 的列表渲染 `yq-for`、事件绑定 `yq-on:事件="处理函数"`（含列表行内）、条件渲染 `yq-if` / `yq-else-if` / `yq-else` / `yq-show`、表单双向绑定 `yq-model` 与 `.trim` / `.number` / `.lazy` 修饰符。
+- **模板。** 文本绑定 `{{ 路径 }}`、整值属性绑定、布尔属性、带稳定 `yq-key` 的列表渲染 `yq-for`、行内可继续嵌套 `yq-for`、事件绑定 `yq-on:事件="处理函数"`（含列表行内）、条件渲染 `yq-if` / `yq-else-if` / `yq-else` / `yq-show`、表单双向绑定 `yq-model` 与 `.trim` / `.number` / `.lazy` 修饰符。
 - **组件模型。** 通过标签属性向子组件传 Props（静态或绑定、保留类型）；默认与具名 `<slot>` 插槽做内容分发；子组件 `$emit('事件', 载荷)` 配合父组件 `yq-on:` 监听实现子传父；`<yq-component yq-is="name">` 由状态驱动的动态组件。
 - **声明式生命周期。** `script` 返回的 `onMount` / `onUpdate` / `onUnmount` 在对应阶段以响应式 state 被调用，与命令式 `setLifecycleHooks` 并存。
 - **状态与处理函数。** `script` 函数返回 `{ state, ...handlers }`；同一同步任务内的多次写入会批量合并为一次刷新。
@@ -139,6 +139,7 @@ ESM 入口为 `packages/core/dist/core.mjs`；全局构建为 `packages/core/dis
 | [parse-demo.html](./examples/parse-demo.html) | 模板解析过程演示 |
 | [reactive-demo.html](./examples/reactive-demo.html) | `state` / `derived` / `effect` 原语 |
 | [csp-test.html](./examples/csp-test.html) | 严格 CSP 下行为段脚本执行 |
+| [nested-for.html](./examples/nested-for.html) | 用嵌套 `yq-for` 行搭建的可展开折叠树形菜单 |
 
 ## 已知限制
 
@@ -188,4 +189,4 @@ yq-sanyi 由我们在业余时间开发与维护。如果它帮你节省了时�
 
 ## 许可证
 
-Apache License 2.0。Copyright 2026 YQteam-dyq。详见 [LICENSE](./LICENSE)。
+Apache License 2.0。Copyright 2026 YQteam-hq。详见 [LICENSE](./LICENSE)。
