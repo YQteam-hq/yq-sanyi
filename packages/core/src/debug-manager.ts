@@ -1,5 +1,5 @@
 import { ComponentInstance } from './index'
-import { DebugPanel, DebugInfo, DebugPanelOptions } from './debug-panel'
+import { DebugPanel, DebugInfo, DebugPanelOptions, PerformanceMetrics } from './debug-panel'
 
 export interface DebugManagerOptions {
   enabled?: boolean
@@ -9,6 +9,7 @@ export interface DebugManagerOptions {
   captureWarnings?: boolean
   performanceTracking?: boolean
   maxLogs?: number
+  panel?: DebugPanelOptions
 }
 
 export interface DebugEvent {
@@ -24,9 +25,21 @@ export class DebugManager {
   private options: Required<DebugManagerOptions>
   private events: DebugEvent[] = []
   private componentInstances: Map<string, ComponentInstance> = new Map()
+  private registeredInstances: WeakSet<ComponentInstance> = new WeakSet()
   private startTime: number = Date.now()
   private updateCount: number = 0
   private effectCount: number = 0
+  private capturedConsole:
+    | { error: typeof console.error; warn: typeof console.warn; log: typeof console.log }
+    | null = null
+  private capturingConsole = false
+  private intervalSamples: number[] = []
+  private lastIntervalSample: number | null = null
+  private maxIntervalSample: number | null = null
+  private lastUpdateAt: Map<string, number> = new Map()
+  private frameCount = 0
+  private frameSamplerId: number | null = null
+  private frameSamplerStart = 0
 
   constructor(options: DebugManagerOptions = {}) {
     this.options = {
@@ -37,6 +50,7 @@ export class DebugManager {
       captureWarnings: true,
       performanceTracking: true,
       maxLogs: 1000,
+      panel: {},
       ...options
     }
 
@@ -46,17 +60,29 @@ export class DebugManager {
   }
 
   private initialize(): void {
-    this.panel = new DebugPanel({
-      position: 'top-right',
-      theme: 'dark',
+    const panelOptions: DebugPanelOptions = {
+      position: this.options.panel.position || 'top-right',
+      theme: this.options.panel.theme || 'dark',
       autoShow: this.options.autoShow,
-      showOnMount: true,
-      showOnError: true
-    })
+      showOnMount: this.options.panel.showOnMount !== false,
+      showOnError: this.options.panel.showOnError !== false
+    }
+    if (this.options.panel.shortcut !== undefined) {
+      panelOptions.shortcut = this.options.panel.shortcut
+    }
+    if (this.options.panel.maxLogs !== undefined) {
+      panelOptions.maxLogs = this.options.panel.maxLogs
+    }
+    if (this.options.panel.title !== undefined) {
+      panelOptions.title = this.options.panel.title
+    }
+
+    this.panel = new DebugPanel(panelOptions)
 
     this.panel.startAutoUpdate(1000)
 
     this.setupConsoleCapture()
+    this.startFrameSampler()
 
     this.logEvent({
       timestamp: Date.now(),
@@ -67,44 +93,75 @@ export class DebugManager {
   }
 
   private setupConsoleCapture(): void {
-    const originalError = console.error
-    const originalWarn = console.warn
-    const originalLog = console.log
+    if (this.capturedConsole) {
+      return
+    }
+
+    const original = {
+      error: console.error,
+      warn: console.warn,
+      log: console.log
+    }
+    this.capturedConsole = original
 
     console.error = (...args) => {
-      originalError.apply(console, args)
-      if (this.options.captureErrors) {
+      original.error.apply(console, args)
+      if (!this.options.captureErrors || this.capturingConsole) {
+        return
+      }
+      this.capturingConsole = true
+      try {
         this.logEvent({
-      timestamp: Date.now(),
-      type: 'error',
-      componentName: 'Console',
-      error: args[0] instanceof Error ? args[0] : new Error(args.join(' '))
-    })
+          timestamp: Date.now(),
+          type: 'error',
+          componentName: 'Console',
+          error: args[0] instanceof Error ? args[0] : new Error(args.join(' '))
+        })
+      } finally {
+        this.capturingConsole = false
       }
     }
 
     console.warn = (...args) => {
-      originalWarn.apply(console, args)
-      if (this.options.captureWarnings) {
+      original.warn.apply(console, args)
+      if (!this.options.captureWarnings || this.capturingConsole) {
+        return
+      }
+      this.capturingConsole = true
+      try {
         this.logEvent({
           timestamp: Date.now(),
           type: 'warning',
           componentName: 'Console',
           data: { message: args.join(' ') }
         })
+      } finally {
+        this.capturingConsole = false
       }
     }
 
     console.log = (...args) => {
-      originalLog.apply(console, args)
+      original.log.apply(console, args)
     }
+  }
+
+  private restoreConsoleCapture(): void {
+    if (!this.capturedConsole) {
+      return
+    }
+    console.error = this.capturedConsole.error
+    console.warn = this.capturedConsole.warn
+    console.log = this.capturedConsole.log
+    this.capturedConsole = null
   }
 
   public registerComponent(instance: ComponentInstance): void {
     if (!this.options.enabled) return
+    if (this.registeredInstances.has(instance)) return
 
+    this.registeredInstances.add(instance)
     this.componentInstances.set(instance.name, instance)
-    
+
     this.addLifecycleListeners(instance)
 
     this.logEvent({
@@ -116,44 +173,54 @@ export class DebugManager {
   }
 
   private addLifecycleListeners(instance: ComponentInstance): void {
-    if (instance.lifecycleHooks.onMount) {
-      const originalOnMount = instance.lifecycleHooks.onMount
-      instance.lifecycleHooks.onMount = () => {
+    const hooks = instance.lifecycleHooks
+
+    const originalOnMount = hooks.onMount
+    hooks.onMount = () => {
+      if (originalOnMount) {
         originalOnMount()
-        this.logEvent({
-          timestamp: Date.now(),
-          type: 'mount',
-          componentName: instance.name,
-          data: { timestamp: Date.now() }
-        })
       }
+      this.lastUpdateAt.set(instance.name, this.now())
+      this.logEvent({
+        timestamp: Date.now(),
+        type: 'mount',
+        componentName: instance.name,
+        data: { timestamp: Date.now() }
+      })
     }
 
-    if (instance.lifecycleHooks.onUpdate) {
-      const originalOnUpdate = instance.lifecycleHooks.onUpdate
-      instance.lifecycleHooks.onUpdate = () => {
+    const originalOnUpdate = hooks.onUpdate
+    hooks.onUpdate = () => {
+      const at = this.now()
+      const previous = this.lastUpdateAt.get(instance.name)
+      if (typeof previous === 'number') {
+        this.recordUpdateInterval(at - previous)
+      }
+      this.lastUpdateAt.set(instance.name, at)
+      if (originalOnUpdate) {
         originalOnUpdate()
-        this.updateCount++
-        this.logEvent({
-          timestamp: Date.now(),
-          type: 'update',
-          componentName: instance.name,
-          data: { timestamp: Date.now(), updateCount: this.updateCount }
-        })
       }
+      this.updateCount++
+      this.logEvent({
+        timestamp: Date.now(),
+        type: 'update',
+        componentName: instance.name,
+        data: { timestamp: Date.now(), updateCount: this.updateCount }
+      })
     }
 
-    if (instance.lifecycleHooks.onUnmount) {
-      const originalOnUnmount = instance.lifecycleHooks.onUnmount
-      instance.lifecycleHooks.onUnmount = () => {
+    const originalOnUnmount = hooks.onUnmount
+    hooks.onUnmount = () => {
+      if (originalOnUnmount) {
         originalOnUnmount()
-        this.logEvent({
-          timestamp: Date.now(),
-          type: 'unmount',
-          componentName: instance.name,
-          data: { timestamp: Date.now() }
-        })
       }
+      this.lastUpdateAt.delete(instance.name)
+      this.logEvent({
+        timestamp: Date.now(),
+        type: 'unmount',
+        componentName: instance.name,
+        data: { timestamp: Date.now() }
+      })
     }
   }
 
@@ -261,17 +328,16 @@ export class DebugManager {
     return snapshot
   }
 
-  private getPerformanceMetrics(): any {
-    const now = Date.now()
-    const uptime = now - this.startTime
-
+  private getPerformanceMetrics(): PerformanceMetrics {
     return {
-      renderTime: this.getAverageRenderTime(),
       updateCount: this.updateCount,
       effectCount: this.effectCount,
       memoryUsage: this.getMemoryUsage(),
-      uptime: uptime,
-      fps: this.getEstimatedFPS()
+      uptime: Date.now() - this.startTime,
+      fps: this.getEstimatedFPS(),
+      lastUpdateInterval: this.lastIntervalSample,
+      averageUpdateInterval: this.averageUpdateInterval(),
+      maxUpdateInterval: this.maxIntervalSample
     }
   }
 
@@ -305,20 +371,77 @@ export class DebugManager {
     return updateEvent?.timestamp || null
   }
 
-  private getAverageRenderTime(): number {
-    return Math.random() * 10
+  private now(): number {
+    return typeof performance !== 'undefined' && typeof performance.now === 'function'
+      ? performance.now()
+      : Date.now()
+  }
+
+  private recordUpdateInterval(duration: number): void {
+    if (!Number.isFinite(duration) || duration < 0) {
+      return
+    }
+    this.lastIntervalSample = duration
+    this.maxIntervalSample =
+      this.maxIntervalSample === null ? duration : Math.max(this.maxIntervalSample, duration)
+    this.intervalSamples.push(duration)
+    if (this.intervalSamples.length > 100) {
+      this.intervalSamples = this.intervalSamples.slice(-100)
+    }
+  }
+
+  private averageUpdateInterval(): number | null {
+    if (this.intervalSamples.length === 0) {
+      return null
+    }
+    let total = 0
+    for (const sample of this.intervalSamples) {
+      total += sample
+    }
+    return total / this.intervalSamples.length
+  }
+
+  private startFrameSampler(): void {
+    const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : null
+    if (!raf) {
+      return
+    }
+    this.frameSamplerStart = this.now()
+    this.frameCount = 0
+    const tick = (): void => {
+      if (this.frameSamplerId === null) {
+        return
+      }
+      this.frameCount++
+      this.frameSamplerId = raf(tick)
+    }
+    this.frameSamplerId = raf(tick)
+  }
+
+  private stopFrameSampler(): void {
+    if (this.frameSamplerId !== null && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(this.frameSamplerId)
+    }
+    this.frameSamplerId = null
+  }
+
+  private getEstimatedFPS(): number | null {
+    if (this.frameSamplerId === null) {
+      return null
+    }
+    const elapsed = this.now() - this.frameSamplerStart
+    if (elapsed <= 0) {
+      return null
+    }
+    return Math.min(240, (this.frameCount / elapsed) * 1000)
   }
 
   private getMemoryUsage(): number {
-    if ('memory' in performance) {
-      const memory = (performance as any).memory
-      return Math.round(memory.usedJSHeapSize / 1024 / 1024)
+    const metrics = typeof performance !== 'undefined' ? (performance as any).memory : undefined
+    if (metrics && typeof metrics.usedJSHeapSize === 'number') {
+      return Math.round(metrics.usedJSHeapSize / 1024 / 1024)
     }
     return 0
-  }
-
-  private getEstimatedFPS(): number {
-    return 60
   }
 
   private updateDebugPanel(): void {
@@ -346,6 +469,14 @@ export class DebugManager {
     }
   }
 
+  public isPanelVisible(): boolean {
+    return this.panel ? this.panel.isVisible : false
+  }
+
+  public getPanel(): DebugPanel | null {
+    return this.panel
+  }
+
   public clearLogs(): void {
     this.events = []
     this.updateCount = 0
@@ -364,13 +495,24 @@ export class DebugManager {
   }
 
   public destroy(): void {
+    this.stopFrameSampler()
+
     if (this.panel) {
       this.panel.destroy()
       this.panel = null
     }
-    
+
+    this.restoreConsoleCapture()
+
     this.componentInstances.clear()
-    
+    this.registeredInstances = new WeakSet()
+    this.lastUpdateAt.clear()
+    this.intervalSamples = []
+    this.lastIntervalSample = null
+    this.maxIntervalSample = null
+    this.updateCount = 0
+    this.effectCount = 0
+
     this.events = []
   }
 
