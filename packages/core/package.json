@@ -16,7 +16,7 @@
     "node"
   ],
   "optionalDependencies": {
-    "linkedom": "^0.18.0 || ^0.20.0"
+    "linkedom": "^0.18.0"
   },
   "peerDependenciesMeta": {
     "linkedom": {
