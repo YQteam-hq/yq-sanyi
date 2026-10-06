@@ -1,9 +1,14 @@
-## Unreleased
+## [0.4.2] - 2026-10-07
 
 ### Added
 
-- feat(define): make script optional (#PR-NUMBER). Many minimal components only ship a template+style and never use script; `define()` now accepts an omitted / `undefined` / empty-object script and normalizes it to `null` at registration time. `ComponentDefinition.script` is typed as the new `ComponentScript` alias (`(() => unknown) | string | null | undefined`) so the optional contract is reflected in the type signature. A script value of `{}` round-trips unchanged and still resolves to a `null` `scriptFactory` (so it is harmless to provide).
+- feat(define): make script optional (PR #26). Many minimal components only ship a template+style and never use script; `define()` now accepts an omitted / `undefined` / empty-object script and normalizes it to `null` at registration time. `ComponentDefinition.script` is typed as the new `ComponentScript` alias (`(() => unknown) | string | null | undefined`) so the optional contract is reflected in the type signature. A script value of `{}` round-trips unchanged and still resolves to a `null` `scriptFactory` (so it is harmless to provide).
 
+### Changed
+
+- chore: tighten linkedom range, extend check-deps to dist (PR #25)
+
+## Unreleased
 
 # Changelog
 
@@ -132,6 +137,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Internal prototype pages under examples/prototypes/ and tests/*.html.
 
+[0.4.2]: https://github.com/YQteam-hq/yq-sanyi/releases/tag/v0.4.2
 [0.4.1]: https://github.com/YQteam-hq/yq-sanyi/releases/tag/v0.4.1
 [0.4.0]: https://github.com/YQteam-hq/yq-sanyi/releases/tag/v0.4.0
 [0.3.0]: https://github.com/YQteam-hq/yq-sanyi/releases/tag/v0.3.0
