@@ -1,6 +1,5 @@
 import type { SNode, Slot, Cdo, RenderContext, ComponentInstance, ComponentOptions, ScoperOptions, Scoper, StyleInjection, LifecycleHooks, ParsedPart, ComponentDefinition } from './index.js'
 import { parseTemplate, createRenderContext, resolvePath, generateScopeId, createStateProxy, lookup, define } from './index.js'
-import { DebugManager, DebugManagerOptions, getDebugManager } from './debug-manager-simple.js'
 import { ErrorBoundary } from './error-boundary.js'
 import { findParentInstance } from './elements.js'
 
@@ -1129,7 +1128,6 @@ function createComponent(options: ComponentOptions): ComponentInstance {
   context.nodeCache = populateNodeCache(cdo, root)
   context.host = container
   
-  const debugManager = getDebugManager()
   const instance: ComponentInstance = {
     name,
     state,
@@ -1155,7 +1153,6 @@ function createComponent(options: ComponentOptions): ComponentInstance {
   instance.lifecycleHooks = extractDeclarativeHooks(scriptResult, instance)
   instance.context.state = createPropsOverlay(instance.state, instance.props)
 
-  debugManager.trackComponent(instance)
 
   return instance
 }
@@ -1227,7 +1224,6 @@ function createInstanceFromCdo(name: string, cdo: Cdo, host: HTMLElement, parent
   }
   context.nodeCache = populateNodeCache(cdo, root)
 
-  const debugManager = getDebugManager()
   const initialProps = collectElementProps(host)
   const instance: ComponentInstance = {
     name,
@@ -1282,7 +1278,6 @@ function createInstanceFromCdo(name: string, cdo: Cdo, host: HTMLElement, parent
   instance.context.handlers = handlers
   instance.context.host = host
   
-  debugManager.trackComponent(instance)
   
   return instance
 }
@@ -1315,13 +1310,6 @@ function mountComponent(instance: ComponentInstance): void {
       path: 'mount'
     })
     
-    const debugManager = getDebugManager()
-    debugManager.logEvent({
-      timestamp: Date.now(),
-      type: 'mount',
-      componentName: instance.name,
-      data: { timestamp: Date.now() }
-    })
   } catch (error) {
     instance.hasError = true
     instance.errorCount++
@@ -1335,8 +1323,6 @@ function mountComponent(instance: ComponentInstance): void {
     
     console.error(`[yq:lifecycle] Component ${instance.name} mount failed:`, error)
     
-    const debugManager = getDebugManager()
-    debugManager.trackError(instance, error as Error, (error as Error).stack)
     
     if (instance.errorBoundary) {
       instance.errorBoundary.componentDidCatch(error as Error, {
@@ -1377,13 +1363,6 @@ function updateComponent(instance: ComponentInstance): void {
       path: 'update'
     })
     
-    const debugManager = getDebugManager()
-    debugManager.logEvent({
-      timestamp: Date.now(),
-      type: 'update',
-      componentName: instance.name,
-      data: { timestamp: Date.now() }
-    })
   } catch (error) {
     instance.hasError = true
     instance.errorCount++
@@ -1396,8 +1375,6 @@ function updateComponent(instance: ComponentInstance): void {
     }
     console.error(`[yq:lifecycle] Component ${instance.name} update failed:`, error)
     
-    const debugManager = getDebugManager()
-    debugManager.trackError(instance, error as Error, (error as Error).stack)
     
     if (instance.errorBoundary) {
       instance.errorBoundary.componentDidCatch(error as Error, {
@@ -1466,13 +1443,6 @@ function unmountComponent(instance: ComponentInstance): void {
       path: 'unmount'
     })
     
-    const debugManager = getDebugManager()
-    debugManager.logEvent({
-      timestamp: Date.now(),
-      type: 'unmount',
-      componentName: instance.name,
-      data: { timestamp: Date.now() }
-    })
     
     if (instance.errorBoundary) {
       instance.errorBoundary.destroy()
@@ -1486,8 +1456,6 @@ function unmountComponent(instance: ComponentInstance): void {
   } catch (error) {
     console.error(`[yq:lifecycle] Component ${instance.name} unmount failed:`, error)
     
-    const debugManager = getDebugManager()
-    debugManager.trackError(instance, error as Error, (error as Error).stack)
   }
 }
 

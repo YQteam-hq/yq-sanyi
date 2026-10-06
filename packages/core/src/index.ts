@@ -1,6 +1,6 @@
-export const version = '0.4.0'
+export const version = '0.4.1'
 
-import { getDebugManager } from './debug-manager-simple.js'
+
 import { ErrorBoundary } from './error-boundary.js'
 import { onError, _resetErrorHandlers } from './error-bus.js'
 import { registerElement } from './elements.js'
@@ -739,20 +739,6 @@ function state<T>(initialValue: T, componentName?: string): State<T> {
       if (value !== newValue) {
         value = newValue
         triggerState(stateObj)
-        if (componentName) {
-          const debugManager = getDebugManager()
-          debugManager.logEvent({
-            timestamp: Date.now(),
-            type: 'effect',
-            componentName,
-            data: { 
-              property: 'state', 
-              oldValue: value, 
-              newValue: newValue,
-              timestamp: Date.now()
-            }
-          })
-        }
       }
     },
     dispose(): void {
@@ -867,10 +853,6 @@ function effect(fn: () => void | (() => void), componentName?: string): () => vo
   prevStart = allEffects.length
   prevEnd = allEffects.length
   wrappedFn()
-  if (componentName) {
-    const debugManager = getDebugManager()
-    debugManager.trackEffect(componentName)
-  }
   return () => {
     const idx = allEffects.indexOf(effectObj)
     if (idx > -1) allEffects.splice(idx, 1)

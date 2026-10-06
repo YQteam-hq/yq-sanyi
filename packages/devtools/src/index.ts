@@ -1,7 +1,14 @@
-import { DebugPanel, type DebugPanelOptions, type DebugInfo } from '../../core/src/debug-panel.js'
-import { DebugManager, type DebugManagerOptions, type DebugEvent } from '../../core/src/debug-manager.js'
-import { getDebugManager } from '../../core/src/debug-manager-simple.js'
+import { DebugPanel } from './panel.js'
+import { DebugManager } from './manager.js'
+import { getDebugManager } from './manager-simple.js'
 import type { ComponentInstance } from '../../core/src/index.js'
+import type { DebugPanelTab, DebugPanelOptions, PerformanceMetrics, DebugInfo } from './panel.js'
+import type { DebugManagerOptions } from './manager.js'
+
+export { DebugPanel, DebugManager, getDebugManager }
+export type { ComponentInstance }
+export type { DebugPanelTab, DebugPanelOptions, PerformanceMetrics, DebugInfo }
+export type { DebugManagerOptions }
 
 export interface DevtoolsHandle {
   readonly attached: boolean
@@ -17,7 +24,7 @@ export interface DevtoolsHandle {
 }
 
 export function attachDevtools(root: object, options?: DebugManagerOptions): DevtoolsHandle {
-  const mgr = DebugManager.getInstance(options)
+  const mgr = new DebugManager(options)
   mgr.showPanel()
   return {
     attached: true,
@@ -46,11 +53,7 @@ export function attachDevtools(root: object, options?: DebugManagerOptions): Dev
       return mgr.exportDebugData()
     },
     destroy(): void {
-      DebugManager.destroyInstance()
+      mgr.destroy()
     }
   }
 }
-
-export { DebugPanel }
-export type { DebugPanelOptions, DebugInfo, DebugManagerOptions, DebugEvent }
-export { DebugManager, getDebugManager }
