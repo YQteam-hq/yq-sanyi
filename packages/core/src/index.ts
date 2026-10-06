@@ -1,15 +1,5 @@
 export const version = '0.4.1'
 
-// v0.4.1: debug instrumentation moved to packages/devtools/.
-// Core ships a noop stub so existing call sites keep compiling.
-const _noopDebug = {
-  trackEffect(_n?: string) {},
-  trackComponent(_i?: any) {},
-  trackError(_i?: any, _e?: Error, _s?: string) {},
-  logEvent(_e: any) {}
-}
-const getDebugManager = (): typeof _noopDebug => _noopDebug
-
 
 import { ErrorBoundary } from './error-boundary.js'
 import { onError, _resetErrorHandlers } from './error-bus.js'
@@ -863,10 +853,6 @@ function effect(fn: () => void | (() => void), componentName?: string): () => vo
   prevStart = allEffects.length
   prevEnd = allEffects.length
   wrappedFn()
-  if (componentName) {
-    const debugManager = getDebugManager()
-    debugManager.trackEffect(componentName)
-  }
   return () => {
     const idx = allEffects.indexOf(effectObj)
     if (idx > -1) allEffects.splice(idx, 1)
