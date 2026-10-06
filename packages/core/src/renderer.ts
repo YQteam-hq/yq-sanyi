@@ -351,7 +351,7 @@ interface RowEventHolder {
   _yqRowEventCleanups?: Array<() => void>
 }
 
-function createRowState(state: Record<string, any>, slot: Extract<Slot, { kind: 'list' }>, item: any, index: number): Record<string, any> {
+function createRowState(state: Record<string, any>, slot: Extract<Slot, { kind: 'list' }>, item: any, index: number, onChange?: () => void): Record<string, any> {
   const overlay = new Map<string | symbol, any>()
   overlay.set(slot.itemVar, item)
   if (slot.indexVar) {
@@ -367,7 +367,9 @@ function createRowState(state: Record<string, any>, slot: Extract<Slot, { kind: 
         overlay.set(key, value)
         return true
       }
-      return Reflect.set(target, key, value, receiver)
+      const result = Reflect.set(target, key, value, receiver)
+      if (onChange) onChange()
+      return result
     },
     has(target, key) {
       if (overlay.has(key)) return true
@@ -425,20 +427,28 @@ function bindRowEvents(cdo: Cdo, containerNode: SNode, rowElement: Element, rowC
     if (!rowIds.has(slot.nodeId)) continue
     const target = slot.nodeId === containerNode.id ? rowElement : rowCache.get(slot.nodeId)
     if (!target) continue
-    const handler = bindings.handlers[slot.handler]
+    const rawHandler = slot.handler
+    const parenIdx = rawHandler.indexOf('(')
+    const handler = bindings.handlers[parenIdx > 0 ? rawHandler.slice(0, parenIdx) : rawHandler]
+    const host = bindings.host || target
     let listener: ((event: Event) => void) | null = null
     if (typeof handler === 'function') {
+      let argPaths: string[][] = []
+      if (parenIdx > 0) {
+        const a = rawHandler.slice(parenIdx + 1, -1)
+        if (a.trim()) argPaths = a.split(',').map(s => s.trim().split('.'))
+      }
       listener = (event: Event) => {
         try {
-          handler.call(bindings.host || target, rowState, event)
+          handler.call(host, rowState, ...argPaths.map(p => resolvePath(rowState, p)), event)
         } catch (error) {
-          console.error(`[yq:event] handler "${slot.handler}" failed:`, error)
+          console.error(`[yq:event] handler "${rawHandler}" failed:`, error)
         }
       }
     } else {
-      listener = createEmitListener(slot.handler, () => rowState, bindings.host || target)
-      if (!listener) continue
+      listener = createEmitListener(rawHandler, () => rowState, host)
     }
+    if (!listener) continue
     target.addEventListener(slot.event, listener as EventListener)
     cleanups.push(() => {
       target.removeEventListener(slot.event, listener as EventListener)
@@ -447,6 +457,7 @@ function bindRowEvents(cdo: Cdo, containerNode: SNode, rowElement: Element, rowC
   const holder = rowElement as Element & RowEventHolder
   holder._yqRowEventCleanups = cleanups
 }
+
 
 function fillListRow(cdo: Cdo, containerNode: SNode, rowElement: Element, itemState: Record<string, any>, bindings?: RowEventBindings): void {
   const rowContext = createRenderContext(itemState, cdo.slots, bindings)
@@ -489,7 +500,7 @@ function fillListRow(cdo: Cdo, containerNode: SNode, rowElement: Element, itemSt
 function createListItem(cdo: Cdo, slot: Extract<Slot, { kind: 'list' }>, item: any, context: RenderContext, index = 0): Element {
   const containerNode = cdo.nodeIndex.get(slot.nodeId)
   if (!containerNode) return document.createElement('div')
-  const itemState = createRowState(context.state, slot, item, index)
+  const itemState = createRowState(context.state, slot, item, index, context.onChange)
   const rowElement = cloneStaticNode(containerNode)
   fillListRow(cdo, containerNode, rowElement, itemState, rowBindings(context))
   return rowElement
@@ -541,7 +552,6 @@ function renderList(cdo: Cdo, node: Element, slot: Extract<Slot, { kind: 'list' 
   node.innerHTML = ''
   node.appendChild(fragment)
 }
-
 function fillListSlot(node: Element, slot: Extract<Slot, { kind: 'list' }>, context: RenderContext, cdo: Cdo): void {
   renderList(cdo, node, slot, context)
 }
@@ -842,6 +852,12 @@ function fillSlots(cdo: Cdo, context: RenderContext, instance?: ComponentInstanc
   }
 
   traverse(rootNode)
+
+  if (context.nodeCache) {
+    for (const [id, el] of context.nodeCache) {
+      if (!cache.has(id) && el && (el as any).dataset?.yqNodeId) cache.set(id, el)
+    }
+  }
 
   processConditions(cdo, context)
 
@@ -1271,6 +1287,7 @@ function createInstanceFromCdo(name: string, cdo: Cdo, host: HTMLElement, parent
     })
   }
   instance.requestUpdate = requestUpdate
+  instance.context.onChange = requestUpdate
 
   instance.state = createStateProxy(state, requestUpdate)
   instance.props = { ...initialProps }

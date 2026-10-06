@@ -71,6 +71,7 @@ export interface RenderContext {
   listElements: Map<string, Element[]>
   handlers?: Record<string, (...args: any[]) => any>
   host?: Element
+  onChange?: () => void
 }
 
 export interface ScoperOptions {
@@ -152,14 +153,15 @@ export interface ComponentInstance {
   slotEventCleanups?: Array<() => void>
 }
 
-export function createRenderContext(state: Record<string, any>, slots: Slot[], bindings?: RowEventBindings): RenderContext {
+export function createRenderContext(state: Record<string, any>, slots: Slot[], bindings?: RowEventBindings, onChange?: () => void): RenderContext {
   return {
     state,
     slots,
     nodeCache: new Map(),
     listElements: new Map(),
     handlers: bindings?.handlers,
-    host: bindings?.host || undefined
+    host: bindings?.host || undefined,
+    onChange
   }
 }
 
