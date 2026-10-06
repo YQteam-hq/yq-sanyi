@@ -76,7 +76,7 @@ function checkFile(file) {
   const rel = relative(root, file);
   const ext = extname(file);
   const text = readFileSync(file, 'utf8');
-  const inDist = file.includes(join('packages', 'core', 'dist'));
+  const inDist = /(?:^|[\\/])packages(?:[\\/][^\\/]+)?[\\/]dist(?:[\\/]|$)/.test(file);
   if (ext === '.ts') {
     if (file.endsWith('.d.ts')) {
       return;
