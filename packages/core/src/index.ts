@@ -5,11 +5,12 @@ import { ErrorBoundary } from './error-boundary.js'
 import { onError, _resetErrorHandlers } from './error-bus.js'
 import { registerElement } from './elements.js'
 
+export type ComponentScript = (() => unknown) | string | null | undefined
 export interface ComponentDefinition {
   readonly name: string
   readonly template: string
   readonly style: string
-  readonly script: unknown
+  readonly script?: ComponentScript
 }
 
 const BOOLEAN_ATTRS = new Set(['checked', 'disabled', 'hidden', 'selected', 'readonly', 'required', 'autofocus', 'open', 'multiple', 'muted', 'itemscope', 'noshade', 'compact'])
@@ -938,15 +939,25 @@ function define(name: string, definition: ComponentDefinition): ComponentDefinit
   if (typeof definition.style !== 'string') {
     throw new TypeError('component definition must include style string')
   }
-  if (typeof definition.script !== 'function' && typeof definition.script !== 'string' && definition.script !== null) {
-    throw new TypeError('script must be function, string, or null')
+  if (
+    definition.script !== undefined &&
+    definition.script !== null &&
+    typeof definition.script !== 'function' &&
+    typeof definition.script !== 'string' &&
+    (typeof definition.script !== 'object' || Array.isArray(definition.script) || Object.keys(definition.script as object).length > 0)
+  ) {
+    throw new TypeError('script must be function, string, null, an empty object, or omitted')
   }
   if (definitions.has(name)) {
     throw new Error('duplicate component definition: ' + name)
   }
-  definitions.set(name, definition)
+  let stored: ComponentDefinition = definition
+  if (definition.script === undefined || (definition.script !== null && typeof definition.script === 'object' && Object.keys(definition.script).length === 0)) {
+    stored = { ...definition, script: null }
+  }
+  definitions.set(name, stored)
   registerElement(name)
-  return definition
+  return stored
 }
 
 interface CachedComponentDefinition extends ComponentDefinition {
