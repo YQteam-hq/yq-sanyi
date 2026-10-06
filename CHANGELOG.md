@@ -5,11 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `yq-for`: attach `yq-on` event handlers on each iterated row instead of the yq-for wrapper, so clicks on inner elements fire the row-scoped handler. Drop the yq-for wrapper element so iterated rows are direct children of the parent.
+
+### Changed
+
+- chore: tighten linkedom range, extend check-deps to dist (#PR-NUMBER)
+
 ## [0.4.1] - 2026-10-06
 
 ### Fixed
 
-- The gzipped core bundle is back under a sensible budget: core.mjs 11.71 KB gz / core.global.js 11.90 KB gz (down from 12.6 KB / 12.8 KB in v0.4.0). scripts/check-gzip.mjs ceiling lowered from 13 KB to 12 KB.
+- The gzipped core bundle is back under a sensible budget: core.mjs 11.75 KB gz / core.global.js 11.94 KB gz (down from 12.6 KB / 12.8 KB in v0.4.0). scripts/check-gzip.mjs ceiling lowered from 13 KB to 12 KB.
+- `state` Proxy now participates in reactivity for getter-derived properties. Declaring a property as a getter (`get pendingCount() { return items.length }`) used to silently turn it into a static value at component-mount time: `extractScriptState` cloned state with `{ ...stateValue }`, which evaluates getters eagerly and replaces them with plain data. State declared with a getter is now preserved as-is, so any subsequent state mutation re-evaluates the getter and the bound template updates. `derived(s)` remains the recommended primitive for non-trivial derived state.
 
 ### Changed
 
