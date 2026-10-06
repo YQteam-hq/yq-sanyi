@@ -1,3 +1,10 @@
+## Unreleased
+
+### Added
+
+- feat(define): make script optional (#PR-NUMBER). Many minimal components only ship a template+style and never use script; `define()` now accepts an omitted / `undefined` / empty-object script and normalizes it to `null` at registration time. `ComponentDefinition.script` is typed as the new `ComponentScript` alias (`(() => unknown) | string | null | undefined`) so the optional contract is reflected in the type signature. A script value of `{}` round-trips unchanged and still resolves to a `null` `scriptFactory` (so it is harmless to provide).
+
+
 # Changelog
 
 All notable changes to this project are documented in this file.
