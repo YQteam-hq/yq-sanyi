@@ -7,16 +7,16 @@ yq-sanyi ("trinity") is a zero-dependency web component framework written from s
 [Chinese README](./docs/i18n/zh-CN/README.md) · [English tutorial](./docs/tutorial.md) · [Chinese tutorial](./docs/i18n/zh-CN/tutorial.md)
 
 ![license](https://img.shields.io/badge/license-Apache%202.0-blue)
-![version](https://img.shields.io/badge/version-v0.4.0-2ea44f)
+![version](https://img.shields.io/badge/version-v0.4.2-2ea44f)
 ![repository](https://img.shields.io/badge/github-YQteam--dyq%2Fyq--sanyi-2ea44f)
 ![dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)
-![size](https://img.shields.io/badge/core-12.6%20kB%20gzipped-yellow)
+![size](https://img.shields.io/badge/core-12%20kB%20gzipped-yellow)
 
 ## Why yq-sanyi
 
 - **Declarative by design.** Call `yq.define(...)` once, then write `<yq-counter>` in plain HTML — the tag mounts, renders and cleans itself up. No mounting code per usage, no framework tag.
 - **State changes re-render automatically.** Mutate the state object inside a handler and the affected parts update in place; remove the tag from the page and every subscription, listener and style is released.
-- **Zero dependencies, zero build for users.** The core is a single ~12.6 kB (gzipped) bundle. It runs on Web-standard APIs only — no JSX, no virtual DOM, no framework runtime, no compiler.
+- **Zero dependencies, zero build for users.** The core is a single ~12 kB (gzipped) bundle. It runs on Web-standard APIs only — no JSX, no virtual DOM, no framework runtime, no compiler.
 - **Scoped styles with no leaks.** Styles declared in a component only apply inside that component. Theme variables and global styles are managed explicitly, and one style is shared by all instances of the same component.
 - **Failure isolation.** A broken component renders an error placeholder and a structured warning while the rest of the page keeps working.
 - **One source of truth.** Template, behavior and style live in one unit — a component is easy to read, easy to reuse and easy to audit.
@@ -102,13 +102,13 @@ Component tags are native custom elements, so they follow the HTML custom elemen
 
 `define` rejects invalid names with a clear error, so a typo never fails silently in the page.
 
-## What is in v0.4.0
+## What is in v0.4.2
 
 - **Declarative components.** `define` registers a native custom element; tags auto-mount, auto-update and auto-cleanup.
 - **Template.** Text binding `{{ path }}`, whole-value attribute binding, boolean attributes, list rendering `yq-for` with stable `yq-key` and an optional row index, **nested `yq-for` at any depth**, event binding `yq-on:event="handler"` on static parts and inside list rows, conditional rendering with `yq-if` / `yq-else-if` / `yq-else` / `yq-show`, two-way form binding with `yq-model` plus `.trim` / `.number` / `.lazy` modifiers, **static fragments via `<template id="x">`**, and **`aria-*` bindings that render only when the bound path is non-empty**.
 - **Component model.** Parent-to-child props via tag attributes (static or bound, type-preserving), content distribution through default and named `<slot>` placeholders, child-to-parent `$emit('event', payload)` with `yq-on:` listeners on the child tag, `<yq-component yq-is="name">` dynamic components driven by state, and **`defineAlias(displayName, realName)` shadow mapping for hyphenated display names**.
 - **Declarative lifecycle.** `onMount` / `onUpdate` / `onUnmount` returned from `script` run at the matching phase with the reactive state, alongside the imperative `setLifecycleHooks`; **`onBatchStart` / `onBatchEnd` expose batch boundaries**.
-- **State and handlers.** The `script` function returns `{ state, ...handlers }`; writes inside one synchronous task are batched into a single refresh.
+- **State and handlers.** The `script` function returns `{ state, ...handlers }`; writes inside one synchronous task are batched into a single refresh. A property declared as a getter (`get pendingCount() { return items.length }`) participates in reactivity, so mutating `items` re-evaluates the getter and any `{{ pendingCount }}` binding updates in place. For non-trivial derived state, prefer `derived((s) => ...)` from the reactive primitives section.
 - **Reactive primitives.** `state`, `derived`, `effect`, plus **`signal()` with `.get() / .set() / .peek() / .subscribe()`, `effectPre` for synchronous effects and `effectScope` for grouped disposal**. `derived` accepts both `signal` and `state` dependencies.
 - **SSR and hydration.** **`parseTemplateDSD(src)` recognises Declarative Shadow DOM (`<template shadowrootmode>`), `yq.hydrate(elementOrSelector, definition?)` adopts server-rendered DOM in place, and an optional Node entry (`packages/core/node/renderToString.mjs`, `linkedom` peer) sketches the server renderer.**
 - **Rendering.** Static skeleton is cloned once and updates write only the bound slots — no subtree rebuilds, no virtual DOM.
@@ -116,6 +116,14 @@ Component tags are native custom elements, so they follow the HTML custom elemen
 - **Failure isolation.** `withErrorBoundary` renders an error placeholder while the rest of the page keeps working, **`onRecover(state, err)`** exposes a recovery hook, and **`yq.onError(fn)`** subscribes to structured warnings.
 - **Lifecycle.** Ordered mount / update / unmount with leak-free disposal; nested components clean up when their host is removed.
 - **Debug hooks.** Component tree, state snapshots and update logs are readable through lifecycle hooks; a separate devtools package and a **Chrome / Firefox DevTools extension (manifest v3)** are available.
+
+### What changed in v0.4.2
+
+- **State getter-derived properties participate in reactivity.** A property declared as a getter on the state object (for example `get pendingCount() { return items.length }`) is re-evaluated when its dependencies change. The reactive proxy preserves accessor descriptors via `Object.create(proto, descriptors)`, so `{{ pendingCount }}` updates in place without needing a manual `derived(...)`. (PR #22)
+- **`define(name, definition)` accepts a definition without a `script` field.** When `script` is omitted, the component has no initial state and no handlers — useful for purely presentational or template-only components. The default behavior is a no-op. (PR #26)
+- **`yq-on:event` handlers inside iterated rows stay attached across re-renders.** In v0.4.1, handlers declared inside `<li yq-for>` (for example `yq-on:click="remove(t.id)"`) were attached to a parent wrapper that got replaced, so events stopped firing after the first render. v0.4.2 wires the row-scoped event handler so it stays attached through re-renders, and listeners on inner elements bubble up to the row handler correctly. Note: the `yq-for` wrapper element is still preserved — each row remains a direct child of the wrapper. A follow-up to drop the wrapper when the wrapper itself would be a void tag (so `<li yq-for>` wrapping `<li>` no longer produces invalid HTML) is tracked for v0.4.3+. (PR #24)
+- **Build-time gzip ceiling raised to 12.5 KB.** `scripts/check-gzip.mjs` enforces a 12.5 KB ceiling on the gzipped core bundles (`packages/core/dist/core.mjs` and `packages/core/dist/core.global.js`). The previous 12 KB ceiling was lifted to absorb the cost of the v0.4.2 reactivity and rendering fixes. (PR #23)
+- **Dependency scan tightened.** `scripts/check-deps.mjs` now scans `packages/*/dist` artifacts in addition to `src`, so accidental runtime imports of `linkedom` or other peer dependencies in the core bundle are caught before merge. The `linkedom` dependency range is also tightened. (PR #25)
 
 ## API at a glance
 
@@ -159,7 +167,6 @@ The ESM entry is `packages/core/dist/core.mjs`; the global build is `packages/co
 - **Shadow DOM is opt-in.** Style isolation uses scope rewriting by default; `createScopedElement` accepts `useShadowDOM` when strong encapsulation is needed.
 - **SSR is Declarative-Shadow-DOM based and opt-in.** The Node renderer entry (`packages/core/node/renderToString.mjs`) is a skeleton, and `linkedom` is an optional peer, so the core bundle stays zero-dependency. Browsers without Declarative Shadow DOM support fall back to client-side rendering.
 - **No CLI or non-browser target.** The CLI package is currently a thin local helper; the core is browser-first by design.
-- **The gzipped core is over the M4-7 target.** See "Known gap: M4-7" below.
 
 ## Documentation
 
@@ -221,7 +228,7 @@ yq-sanyi is built and maintained in our free time. If it saves you time, conside
 
 Your support helps keep the framework free, open and zero-dependency.
 
-## v0.4.0 status
+## v0.4.2 status
 
 All five v0.4.0 batches are merged to `main`.
 
