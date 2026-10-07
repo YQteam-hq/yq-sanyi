@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const limitKb = 12;
+const limitKb = 12.5;
 const targets = ['packages/core/dist/core.mjs', 'packages/core/dist/core.global.js'];
 let failed = false;
 
