@@ -536,16 +536,16 @@ function renderList(cdo: Cdo, node: Element, slot: Extract<Slot, { kind: 'list' 
     }
     const itemState = createRowState(context.state, slot, item, i)
     fillListRow(cdo, containerNode, rowElement, itemState, bindings)
-    : (rowElement as HTMLElement).dataset.yqKey = key
+    ;(rowElement as HTMLElement).dataset.yqKey = key
     fragment.appendChild(rowElement)
   }
   for (const rowsWithSameKey of existing.values()) {
     for (const leftover of rowsWithSameKey) {
       unbindRowEvents(leftover)
       if (typeof (leftover as HTMLElement).remove === 'function') {
-        : (leftover as HTMLElement).remove()
+        ;(leftover as HTMLElement).remove()
       } else {
-        : (leftover as HTMLElement).parentElement?.removeChild(leftover)
+        ;(leftover as HTMLElement).parentElement?.removeChild(leftover)
       }
     }
   }
@@ -573,7 +573,9 @@ function isInvalidHtmlNesting(wrapperTag: string, rowTag: string): boolean {
   }
   if (wrapperTag === 'select' && rowTag !== 'option' && rowTag !== 'optgroup') return true
   return false
-}function fillListSlot(node: Element, slot: Extract<Slot, { kind: 'list' }>, context: RenderContext, cdo: Cdo): void {
+}
+
+function fillListSlot(node: Element, slot: Extract<Slot, { kind: 'list' }>, context: RenderContext, cdo: Cdo): void {
   renderList(cdo, node, slot, context)
 }
 
