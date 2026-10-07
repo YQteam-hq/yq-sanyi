@@ -1,15 +1,3 @@
-## [0.4.2] - 2026-10-07
-
-### Added
-
-- feat(define): make script optional (PR #26). Many minimal components only ship a template+style and never use script; `define()` now accepts an omitted / `undefined` / empty-object script and normalizes it to `null` at registration time. `ComponentDefinition.script` is typed as the new `ComponentScript` alias (`(() => unknown) | string | null | undefined`) so the optional contract is reflected in the type signature. A script value of `{}` round-trips unchanged and still resolves to a `null` `scriptFactory` (so it is harmless to provide).
-
-### Changed
-
-- chore: tighten linkedom range, extend check-deps to dist (PR #25)
-
-## Unreleased
-
 # Changelog
 
 All notable changes to this project are documented in this file.
@@ -19,9 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-07
+
+### Added
+
+- feat(define): make script optional (#26). Many minimal components only ship a template+style and never use script; `define()` now accepts an omitted / `undefined` / empty-object script and normalizes it to `null` at registration time. `ComponentDefinition.script` is typed as the new `ComponentScript` alias (`(() => unknown) | string | null | undefined`) so the optional contract is reflected in the type signature. A script value of `{}` round-trips unchanged and still resolves to a `null` `scriptFactory` (so it is harmless to provide).
+
+### Fixed
+
+- fix(state): getter-derived properties now participate in reactivity (#22). `extractScriptState` clones state with `Object.create(Object.getPrototypeOf(stateValue), Object.getOwnPropertyDescriptors(stateValue))` instead of `{ ...stateValue }`, so a getter declared on the state object is preserved and any bound `{{ getter }}` re-evaluates when its dependencies change.
+- fix(renderer): attach `yq-on` events on iterated rows (#24). Row-scoped handlers (including the `handler(arg)` argument form) are wired to the row so they stay attached across `yq-for` re-renders, and the row-state Proxy forwards non-local writes to `requestUpdate` so mutating a list re-renders in place.
+
 ### Changed
 
-- chore: tighten linkedom range, extend check-deps to dist (#25)
+- chore: tighten linkedom range, extend check-deps to dist (#25).
+- The gzipped core budget is raised from 12 KB to 12.5 KB (#23) to absorb the v0.4.2 reactivity and rendering fixes. Bundles: core.mjs 11.98 KB gz / core.global.js 12.16 KB gz.
 
 ## [0.4.1] - 2026-10-06
 
