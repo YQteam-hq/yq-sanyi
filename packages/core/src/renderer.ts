@@ -549,8 +549,21 @@ function renderList(cdo: Cdo, node: Element, slot: Extract<Slot, { kind: 'list' 
       }
     }
   }
-  node.innerHTML = ''
-  node.appendChild(fragment)
+  // Bug #2 fix (v0.5): yq-for ALWAYS replaces its host element with rendered rows.
+  // The host is a template slot, not a wrapper to preserve.
+  const hostParent = node.parentElement
+  if (hostParent) {
+    while (fragment.firstChild) {
+      hostParent.insertBefore(fragment.firstChild, node)
+    }
+    hostParent.removeChild(node)
+  } else {
+    // host detached from DOM (rare): fall back to host as container
+    node.innerHTML = ''
+    while (fragment.firstChild) {
+      node.appendChild(fragment.firstChild)
+    }
+  }
 }
 function fillListSlot(node: Element, slot: Extract<Slot, { kind: 'list' }>, context: RenderContext, cdo: Cdo): void {
   renderList(cdo, node, slot, context)

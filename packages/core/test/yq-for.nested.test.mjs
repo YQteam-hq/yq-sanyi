@@ -9,12 +9,14 @@ function textOf(el) {
   return (el && el.textContent) || ''
 }
 
+// With always-drop semantics, outer/inner wrapper elements are REPLACED by rows.
+// root.children = outer rows; outerRow.children = inner rows.
 function outerRows(instance) {
-  return instance.root.children[0].children
+  return instance.root.children
 }
 
 function innerRows(rowElement) {
-  return rowElement.children[0].children
+  return rowElement.children
 }
 
 function nestedGroups() {
