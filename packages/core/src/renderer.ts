@@ -549,32 +549,22 @@ function renderList(cdo: Cdo, node: Element, slot: Extract<Slot, { kind: 'list' 
       }
     }
   }
-  if (isInvalidHtmlNesting(node.tagName.toLowerCase(), containerNode.tag)) {
-    const parent = node.parentElement
-    if (parent) {
-      while (fragment.firstChild) {
-        parent.insertBefore(fragment.firstChild, node)
-      }
-      parent.removeChild(node)
+  // Bug #2 fix (v0.5): yq-for ALWAYS replaces its host element with rendered rows.
+  // The host is a template slot, not a wrapper to preserve.
+  const hostParent = node.parentElement
+  if (hostParent) {
+    while (fragment.firstChild) {
+      hostParent.insertBefore(fragment.firstChild, node)
     }
+    hostParent.removeChild(node)
   } else {
+    // host detached from DOM (rare): fall back to host as container
     node.innerHTML = ''
-    node.appendChild(fragment)
+    while (fragment.firstChild) {
+      node.appendChild(fragment.firstChild)
+    }
   }
 }
-
-function isInvalidHtmlNesting(wrapperTag: string, rowTag: string): boolean {
-  if (wrapperTag === rowTag) return true
-  if (wrapperTag === 'a') return true
-  if (wrapperTag === 'button') return true
-  if (wrapperTag === 'p') {
-    const blockInsideP = ['address','article','aside','blockquote','details','dialog','dd','div','dl','dt','fieldset','figure','footer','form','h1','h2','h3','h4','h5','h6','header','hgroup','hr','main','nav','section','table','ul','ol','menu','pre']
-    return blockInsideP.includes(rowTag)
-  }
-  if (wrapperTag === 'select' && rowTag !== 'option' && rowTag !== 'optgroup') return true
-  return false
-}
-
 function fillListSlot(node: Element, slot: Extract<Slot, { kind: 'list' }>, context: RenderContext, cdo: Cdo): void {
   renderList(cdo, node, slot, context)
 }
