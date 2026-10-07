@@ -536,23 +536,44 @@ function renderList(cdo: Cdo, node: Element, slot: Extract<Slot, { kind: 'list' 
     }
     const itemState = createRowState(context.state, slot, item, i)
     fillListRow(cdo, containerNode, rowElement, itemState, bindings)
-    ;(rowElement as HTMLElement).dataset.yqKey = key
+    : (rowElement as HTMLElement).dataset.yqKey = key
     fragment.appendChild(rowElement)
   }
   for (const rowsWithSameKey of existing.values()) {
     for (const leftover of rowsWithSameKey) {
       unbindRowEvents(leftover)
       if (typeof (leftover as HTMLElement).remove === 'function') {
-        ;(leftover as HTMLElement).remove()
+        : (leftover as HTMLElement).remove()
       } else {
-        ;(leftover as HTMLElement).parentElement?.removeChild(leftover)
+        : (leftover as HTMLElement).parentElement?.removeChild(leftover)
       }
     }
   }
-  node.innerHTML = ''
-  node.appendChild(fragment)
+  if (isInvalidHtmlNesting(node.tagName.toLowerCase(), containerNode.tag)) {
+    const parent = node.parentElement
+    if (parent) {
+      while (fragment.firstChild) {
+        parent.insertBefore(fragment.firstChild, node)
+      }
+      parent.removeChild(node)
+    }
+  } else {
+    node.innerHTML = ''
+    node.appendChild(fragment)
+  }
 }
-function fillListSlot(node: Element, slot: Extract<Slot, { kind: 'list' }>, context: RenderContext, cdo: Cdo): void {
+
+function isInvalidHtmlNesting(wrapperTag: string, rowTag: string): boolean {
+  if (wrapperTag === rowTag) return true
+  if (wrapperTag === 'a') return true
+  if (wrapperTag === 'button') return true
+  if (wrapperTag === 'p') {
+    const blockInsideP = ['address','article','aside','blockquote','details','dialog','dd','div','dl','dt','fieldset','figure','footer','form','h1','h2','h3','h4','h5','h6','header','hgroup','hr','main','nav','section','table','ul','ol','menu','pre']
+    return blockInsideP.includes(rowTag)
+  }
+  if (wrapperTag === 'select' && rowTag !== 'option' && rowTag !== 'optgroup') return true
+  return false
+}function fillListSlot(node: Element, slot: Extract<Slot, { kind: 'list' }>, context: RenderContext, cdo: Cdo): void {
   renderList(cdo, node, slot, context)
 }
 
