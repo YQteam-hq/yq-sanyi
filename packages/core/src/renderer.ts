@@ -1170,7 +1170,7 @@ function extractScriptState(result: Record<string, any> | null): Record<string, 
   if (!result) return {}
   const stateValue = result.state
   if (stateValue && typeof stateValue === 'object') {
-    return { ...stateValue }
+    return Object.create(Object.getPrototypeOf(stateValue), Object.getOwnPropertyDescriptors(stateValue))
   }
   return {}
 }
