@@ -31,18 +31,30 @@ function makeElement(tag) {
         }
         return child
       }
+      if (child.parentElement && child.parentElement !== element) {
+        const oldParent = child.parentElement
+        const idx = oldParent.children.indexOf(child)
+        if (idx > -1) oldParent.children.splice(idx, 1)
+      }
       element.children.push(child)
       child.parentElement = element
       if (element.isConnected) connectNode(child)
       return child
     },
     insertBefore(newNode, anchor) {
+      if (newNode && newNode.children && newNode.tagName === undefined) {
+        for (const c of newNode.children.slice()) {
+          if (c) element.insertBefore(c, anchor)
+        }
+        return newNode
+      }
       const idx = element.children.indexOf(anchor)
       if (idx === -1) {
         element.appendChild(newNode)
       } else {
         element.children.splice(idx, 0, newNode)
         newNode.parentElement = element
+        if (element.isConnected) connectNode(newNode)
       }
       return newNode
     },
@@ -56,6 +68,13 @@ function makeElement(tag) {
     },
     remove() {
       if (element.parentElement) element.parentElement.removeChild(element)
+    },
+    contains(node) {
+      if (node === element) return true
+      for (const c of element.children || []) {
+        if (c === node || (c.contains && c.contains(node))) return true
+      }
+      return false
     },
     cloneNode(deep) {
       const clone = createElementLike(tag)
@@ -102,6 +121,10 @@ function makeElement(tag) {
         element.children = []
       }
     },
+    configurable: true
+  })
+  Object.defineProperty(element, 'parentNode', {
+    get() { return element.parentElement },
     configurable: true
   })
   return element
@@ -157,12 +180,22 @@ function installGlobals() {
   }
   global.document = {
     createElement: (tag) => createElementLike(tag),
-    createDocumentFragment: () => ({
-      children: [],
-      appendChild(child) {
-        this.children.push(child)
+    createDocumentFragment: () => {
+      const frag = {
+        children: [],
+        appendChild(child) {
+          if (child && child.parentElement && child.parentElement !== frag) {
+            const oldParent = child.parentElement
+            const idx = oldParent.children.indexOf(child)
+            if (idx > -1) oldParent.children.splice(idx, 1)
+          }
+          child.parentElement = frag
+          frag.children.push(child)
+          return child
+        }
       }
-    }),
+      return frag
+    },
     head: makeElement('head'),
     body: makeElement('body'),
     documentElement: { style: { setProperty() {}, removeProperty() {} } },
