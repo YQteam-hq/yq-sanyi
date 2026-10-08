@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 
-import type { ComponentInstance, UpdateLog, LifecycleState } from '../../core/src/index.js'
+// import type { ComponentInstance, UpdateLog, LifecycleState } from '../../core/src/index.js' - Not available in package context
 
 export interface PerformanceMetrics {
   renderTime: number
@@ -15,10 +15,10 @@ export interface PerformanceMetrics {
 
 export interface DebugInfo {
   componentName: string
-  lifecycleState: LifecycleState
+  lifecycleState: string
   state: Record<string, any>
   derivedStates: Record<string, any>
-  updateLogs: UpdateLog[]
+  updateLogs: Array<{ timestamp: number; type: string; data?: any }>
   errorInfo: { hasError: boolean; error?: Error; timestamp?: number } | null
   mountTime: number
   lastUpdateTime: number
@@ -50,7 +50,7 @@ export class ComponentProfiler {
   /**
    * Start profiling a component instance
    */
-  startProfiling(instance: ComponentInstance): void {
+  startProfiling(instance: any): void {
     const debugInfo: DebugInfo = {
       componentName: instance.name,
       lifecycleState: instance.lifecycleState,
@@ -73,7 +73,7 @@ export class ComponentProfiler {
   /**
    * Stop profiling a component instance
    */
-  stopProfiling(instance: ComponentInstance): DebugInfo | null {
+  stopProfiling(instance: any): DebugInfo | null {
     const key = `${instance.name}-${instance.container.id}`
     const info = this.instanceMetrics.get(key)
     if (info) {
@@ -126,7 +126,7 @@ export class ComponentProfiler {
     return JSON.stringify(report, null, 2)
   }
 
-  private startRenderProfiling(instance: ComponentInstance): void {
+  private startRenderProfiling(instance: any): void {
     const originalUpdate = instance.requestUpdate
     let renderStartTime = 0
     
@@ -289,7 +289,7 @@ export class DebugUtils {
   /**
    * Log component state changes
    */
-  static logStateChange(instance: ComponentInstance, property: string, oldValue: any, newValue: any): void {
+  static logStateChange(instance: any, property: string, oldValue: any, newValue: any): void {
     console.group(`🔄 State Change: ${instance.name}.${property}`)
     console.log('Old value:', oldValue)
     console.log('New value:', newValue)
@@ -300,7 +300,7 @@ export class DebugUtils {
   /**
    * Log component lifecycle events
    */
-  static logLifecycleEvent(instance: ComponentInstance, event: string): void {
+  static logLifecycleEvent(instance: any, event: string): void {
     console.group(`📋 Lifecycle: ${instance.name} - ${event}`)
     console.log('State:', instance.state)
     console.log('Timestamp:', new Date().toISOString())
@@ -310,7 +310,7 @@ export class DebugUtils {
   /**
    * Log component errors
    */
-  static logComponentError(instance: ComponentInstance, error: Error): void {
+  static logComponentError(instance: any, error: Error): void {
     console.group(`❌ Component Error: ${instance.name}`)
     console.error('Error:', error)
     console.error('Stack:', error.stack)
@@ -322,7 +322,7 @@ export class DebugUtils {
   /**
    * Generate component snapshot
    */
-  static generateSnapshot(instance: ComponentInstance): DebugInfo {
+  static generateSnapshot(instance: any): DebugInfo {
     return {
       componentName: instance.name,
       lifecycleState: instance.lifecycleState,

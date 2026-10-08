@@ -3,7 +3,15 @@
  * @packageDocumentation
  */
 
-import type { ComponentDefinition, ComponentScript } from '../../core/src/index.js'
+// Type definitions for ComponentDefinition and ComponentScript
+export type ComponentScript = (this: any) => any
+
+export interface ComponentDefinition {
+  readonly name: string
+  readonly template: string
+  readonly style: string
+  readonly script?: ComponentScript
+}
 
 export interface ComponentConfig {
   name: string

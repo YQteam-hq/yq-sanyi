@@ -3,7 +3,16 @@
  * @packageDocumentation
  */
 
-import type { ComponentDefinition, ComponentScript } from '../../core/src/index.js'
+// import type { ComponentDefinition, ComponentScript } from '../../core/src/index.js' - Not available in package context
+
+export type ComponentScript = (this: any) => any
+
+export interface ComponentDefinition {
+  name: string
+  template: string
+  style?: string
+  script?: ComponentScript
+}
 
 export interface Translation {
   [key: string]: string | Translation

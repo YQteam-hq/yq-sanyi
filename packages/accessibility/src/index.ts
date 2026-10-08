@@ -3,7 +3,17 @@
  * @packageDocumentation
  */
 
-import type { ComponentDefinition, ComponentScript, ComponentInstance } from '../../core/src/index.js'
+// import type { ComponentDefinition, ComponentScript, ComponentInstance } from '../../core/src/index.js' - Not available in package context
+
+export type ComponentScript = (this: any) => any
+export type ComponentInstance = any
+
+export interface ComponentDefinition {
+  name: string
+  template: string
+  style?: string
+  script?: ComponentScript
+}
 
 export interface ARIAAttributes {
   role?: string
