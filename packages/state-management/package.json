@@ -1,0 +1,26 @@
+{
+  "name": "@yq-sanyi/state-management",
+  "version": "0.1.0",
+  "description": "Advanced state management patterns for yq-sanyi components",
+  "type": "module",
+  "main": "./dist/state-management.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --minify --format=esm --target=es2019 --outfile=dist/state-management.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  
+  "keywords": [
+    "web-components",
+    "state-management",
+    "redux",
+    "flux",
+    "yq-sanyi"
+  ],
+  "author": "YQteam-hq",
+  "license": "Apache-2.0"
+}
