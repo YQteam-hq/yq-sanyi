@@ -1,0 +1,26 @@
+{
+  "name": "@yq-sanyi/router-utils",
+  "version": "0.1.0",
+  "description": "Client-side routing and navigation utilities for yq-sanyi",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --minify --format=esm --target=es2019 --outfile=dist/index.mjs && esbuild src/index.ts --bundle --minify --format=cjs --target=es2019 --outfile=dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "yq-sanyi",
+    "router",
+    "routing",
+    "navigation",
+    "spa",
+    "client-side"
+  ],
+  "author": "YQteam-hq",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "esbuild": "^0.19.0"
+  }
+}
