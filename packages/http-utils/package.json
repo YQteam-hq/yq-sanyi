@@ -1,0 +1,29 @@
+{
+  "name": "@yq-sanyi/http-utils",
+  "version": "0.1.0",
+  "description": "HTTP client utilities with request interceptors, response handling, and caching for yq-sanyi",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --minify --format=esm --target=es2019 --outfile=dist/index.mjs && esbuild src/index.ts --bundle --minify --format=cjs --target=es2019 --outfile=dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "yq-sanyi",
+    "http",
+    "client",
+    "fetch",
+    "axios",
+    "request",
+    "response",
+    "interceptor",
+    "cache"
+  ],
+  "author": "YQteam-hq",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "esbuild": "^0.19.0"
+  }
+}

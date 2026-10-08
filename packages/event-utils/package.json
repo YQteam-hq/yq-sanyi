@@ -1,0 +1,29 @@
+{
+  "name": "@yq-sanyi/event-utils",
+  "version": "1.0.0",
+  "description": "Advanced event management and delegation utilities for yq-sanyi applications",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "rimraf dist && esbuild src/index.ts --bundle --format=esm --outfile=dist/index.esm.js --platform=browser && esbuild src/index.ts --bundle --format=cjs --outfile=dist/index.js --platform=browser && tsc --emitDeclarationOnly",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "yq-sanyi",
+    "event",
+    "events",
+    "delegation",
+    "emitter",
+    "listener",
+    "pubsub",
+    "observer"
+  ],
+  "author": "YQteam-hq",
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.21.0",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.0.0"
+  }
+}
