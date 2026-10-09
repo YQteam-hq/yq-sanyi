@@ -33,7 +33,7 @@ export type Slot =
   | { kind: 'text'; nodeId: number; partIndex: number; path?: string[] }
   | { kind: 'attr'; nodeId: number; attr: string; path?: string[] }
   | { kind: 'bool'; nodeId: number; attr: string; path?: string[] }
-  | { kind: 'event'; nodeId: number; event: string; handler: string }
+  | { kind: 'event'; nodeId: number; event: string; handler: string; debounce?: number; throttle?: number }
   | { kind: 'list'; nodeId: number; itemVar: string; indexVar: string | null; itemsPath: string[]; keyProp: string | null }
   | { kind: 'model'; nodeId: number; path: string[]; trim: boolean; number: boolean; lazy: boolean }
   | { kind: 'dynamic'; nodeId: number; path?: string[] }
@@ -366,7 +366,20 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
       const eventName = attr.substring('yq-on:'.length)
       if (eventName.length === 0) error('empty event name in yq-on')
       if (value.trim().length === 0) error('empty handler in yq-on:' + eventName)
-      slots.push({ kind: 'event', nodeId: node.id, event: eventName, handler: value.trim() })
+      
+      // Parse debounce and throttle modifiers
+      const debounceMatch = value.match(/debounce:(\d+)/)
+      const throttleMatch = value.match(/throttle:(\d+)/)
+      const handler = value.replace(/debounce:\d+|throttle:\d+/g, '').trim()
+      
+      slots.push({ 
+        kind: 'event', 
+        nodeId: node.id, 
+        event: eventName, 
+        handler,
+        debounce: debounceMatch ? parseInt(debounceMatch[1]) : undefined,
+        throttle: throttleMatch ? parseInt(throttleMatch[1]) : undefined
+      })
     } else if (attr === 'yq-if' || attr === 'yq-else-if' || attr === 'yq-else' || attr === 'yq-show') {
       const mode = attr === 'yq-if' ? 'if' : attr === 'yq-else-if' ? 'elseif' : attr === 'yq-else' ? 'else' : 'show'
       if (mode !== 'else' && value.trim().length === 0) error('empty condition in ' + attr)
@@ -619,6 +632,7 @@ function createScriptFactory(script: unknown): (() => unknown) | null {
 }
 
 import { renderSkeleton, populateNodeCache, fillSlots, updateSlots, createComponent, hydrate, mountComponent, updateComponent, unmountComponent, scoper, withErrorBoundary, getErrorBoundaryInfo, resetErrorBoundary, generateScopedCSS, injectStyle, removeStyle, updateTheme, getThemeVariables, resetTheme, addGlobalStyle, removeGlobalStyle, getGlobalStyles, clearGlobalStyles, createScopedElement, RowEventBindings } from './renderer.js'
+import { EnhancedErrorHandler, DebounceUtils, ValidationUtils } from './enhanced-utils.js'
 
 let effectStack: Effect[] = []
 let allEffects: Effect[] = []
@@ -1027,6 +1041,9 @@ function getStateSnapshot(instance: ComponentInstance): Record<string, any> {
   }
 }
 
+// Initialize enhanced error handling
+EnhancedErrorHandler.initialize()
+
 export { 
   generateScopeId,
   define,
@@ -1063,5 +1080,9 @@ export {
   getErrorBoundaryInfo,
   resetErrorBoundary,
   onError,
-  _resetErrorHandlers
+  _resetErrorHandlers,
+  // Enhanced utilities
+  EnhancedErrorHandler,
+  DebounceUtils,
+  ValidationUtils
 }
