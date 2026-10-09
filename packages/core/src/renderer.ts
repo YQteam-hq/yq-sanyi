@@ -2,6 +2,7 @@ import type { SNode, Slot, Cdo, RenderContext, ComponentInstance, ComponentOptio
 import { parseTemplate, createRenderContext, resolvePath, generateScopeId, createStateProxy, lookup, define } from './index.js'
 import { ErrorBoundary } from './error-boundary.js'
 import { findParentInstance } from './elements.js'
+import { DebounceUtils } from './enhanced-utils.js'
 
 function isNestedInstanceHost(element: Element): boolean {
   const el = element as unknown as { _yqInstance?: unknown }
@@ -922,13 +923,22 @@ function bindEvents(instance: ComponentInstance): void {
     const handler = handlers[slot.handler]
     let listener: ((event: Event) => void) | null = null
     if (typeof handler === 'function') {
-      listener = (event: Event) => {
+      let wrappedHandler = (event: Event) => {
         try {
           handler.call(instance.container, instance.state, event)
         } catch (error) {
           console.error(`[yq:event] handler "${slot.handler}" failed:`, error)
         }
       }
+      
+      // Apply debounce or throttle if specified
+      if (slot.debounce) {
+        wrappedHandler = DebounceUtils.debounce(wrappedHandler, slot.debounce)
+      } else if (slot.throttle) {
+        wrappedHandler = DebounceUtils.throttle(wrappedHandler, slot.throttle)
+      }
+      
+      listener = wrappedHandler
     } else {
       listener = createEmitListener(slot.handler, () => instance.state, instance.container)
       if (!listener) continue

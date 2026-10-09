@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enhanced yq-sanyi Demo - Performance & Error Handling</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #1a202c;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      text-align: center;
+      color: #2d3748;
+      margin-bottom: 8px;
+      font-size: 2.5rem;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #718096;
+      margin-bottom: 32px;
+      font-size: 1.1rem;
+    }
+    
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    
+    .demo-card {
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 24px;
+      transition: all 0.3s ease;
+    }
+    
+    .demo-card:hover {
+      border-color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+    }
+    
+    .card-title {
+      color: #2d3748;
+      margin: 0 0 16px 0;
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+    
+    .card-description {
+      color: #4a5568;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    
+    .button {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin: 4px;
+    }
+    
+    .button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .button:active {
+      transform: translateY(0);
+    }
+    
+    .input-field {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+      margin-bottom: 12px;
+    }
+    
+    .input-field:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .performance-metrics {
+      background: #edf2f7;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+    }
+    
+    .metric-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    
+    .metric-label {
+      color: #4a5568;
+    }
+    
+    .metric-value {
+      color: #2d3748;
+      font-weight: 600;
+    }
+    
+    .error-display {
+      background: #fed7d7;
+      border: 1px solid #fc8181;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      color: #742a2a;
+    }
+    
+    .success-display {
+      background: #c6f6d5;
+      border: 1px solid #9ae6b4;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      color: #22543d;
+    }
+    
+    .code-block {
+      background: #2d3748;
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      overflow-x: auto;
+    }
+    
+    .feature-section {
+      background: #f0fff4;
+      border: 1px solid #9ae6b4;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    
+    .feature-title {
+      color: #22543d;
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    
+    .feature-description {
+      color: #2f855a;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 16px;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Enhanced yq-sanyi Demo</h1>
+    <p class="subtitle">Showcasing Performance Monitoring, Enhanced Error Handling, and New Directives</p>
+    
+    <div class="feature-section">
+      <div class="feature-title">🚀 Performance Monitoring</div>
+      <div class="feature-description">
+        Built-in performance tracking monitors reactive updates, derivations, and effects. 
+        Get insights into your application's performance with real-time metrics.
+      </div>
+    </div>
+    
+    <div class="feature-section">
+      <div class="feature-title">🎯 Enhanced Error Handling</div>
+      <div class="feature-description">
+        Better error messages with suggestions and context. 
+        Enhanced error boundaries with detailed error information and recovery options.
+      </div>
+    </div>
+    
+    <div class="feature-section">
+      <div class="feature-title">⚡ New Directives</div>
+      <div class="feature-description">
+        Support for <code>debounce</code> and <code>throttle</code> modifiers on event handlers 
+        to optimize performance and prevent rapid successive calls.
+      </div>
+    </div>
+
+    <div class="demo-grid">
+      <!-- Performance Counter Demo -->
+      <div class="demo-card">
+        <h2 class="card-title">Performance Counter</h2>
+        <p class="card-description">
+          Test performance monitoring with rapid updates. 
+          Watch the metrics update in real-time as you click.
+        </p>
+        <button class="button" yq-on:click="incrementCounter">Increment Counter</button>
+        <button class="button" yq-on:click="resetCounter">Reset</button>
+        <div class="performance-metrics">
+          <div class="metric-item">
+            <span class="metric-label">Update Count:</span>
+            <span class="metric-value" id="update-count">{{ metrics.updateCount }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Average Update Time:</span>
+            <span class="metric-value">{{ metrics.averageUpdateTime.toFixed(2) }}ms</span>
+          </div>
+          <div class="metric-item">
+            <Slowest Update Time:</span>
+            <span class="metric-value">{{ metrics.slowestUpdateTime.toFixed(2) }}ms</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Derivations:</span>
+            <span class="metric-value">{{ metrics.derivationCount }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Effects:</span>
+            <span class="metric-value">{{ metrics.effectCount }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Debounce Demo -->
+      <div class="demo-card">
+        <h2 class="card-title">Debounce Demo</h2>
+        <p class="card-description">
+          Test the debounce functionality. Type in the input field and see how 
+          debouncing prevents excessive function calls.
+        </p>
+        <input 
+          type="text" 
+          class="input-field" 
+          placeholder="Type here to test debouncing..."
+          yq-on:input="debouncedInput debounce:500"
+        >
+        <div class="success-display">
+          <strong>Debounced Input:</strong> <span id="debounced-value">{{ debouncedValue }}</span>
+        </div>
+        <p class="card-description">
+          The input handler is debounced to 500ms. Try typing rapidly and see how 
+          the value only updates after you stop typing.
+        </p>
+      </div>
+
+      <!-- Throttle Demo -->
+      <div class="demo-card">
+        <h2 class="card-title">Throttle Demo</h2>
+        <p class="card-description">
+          Test the throttle functionality. Click the button rapidly to see how 
+          throttling limits the execution rate.
+        </p>
+        <button class="button" yq-on:click="throttledClick throttle:1000">
+          Click Me (Throttled)
+        </button>
+        <div class="success-display">
+          <strong>Click Count:</strong> <span id="click-count">{{ throttledClickCount }}</span>
+        </div>
+        <p class="card-description">
+          The click handler is throttled to 1000ms. Try clicking rapidly and see how 
+          the count only increments once per second.
+        </p>
+      </div>
+
+      <!-- Enhanced Error Handling Demo -->
+      <div class="demo-card">
+        <h2 class="card-title">Error Handling Demo</h2>
+        <p class="card-description">
+          Test enhanced error handling with improved error messages and suggestions.
+        </p>
+        <button class="button" yq-on:click="triggerError">Trigger Error</button>
+        <button class="button" yq-on:click="clearError">Clear Error</button>
+        <div id="error-display" class="error-display" style="display: none;">
+          <strong>Error:</strong> <span id="error-message">{{ errorMessage }}</span>
+          <br>
+          <strong>Suggestion:</strong> <span id="error-suggestion">{{ errorSuggestion }}</span>
+        </div>
+      </div>
+
+      <!-- Template Validation Demo -->
+      <div class="demo-card">
+        <h2 class="card-title">Template Validation</h2>
+        <p class="card-description">
+          Test real-time template validation with helpful error messages.
+        </p>
+        <textarea 
+          class="input-field" 
+          rows="4" 
+          placeholder="Enter your template here..."
+          yq-on:input="validateTemplate"
+        ></textarea>
+        <div id="validation-result"></div>
+      </div>
+
+      <!-- Combined Features Demo -->
+      <div class="demo-card">
+        <h2 class="card-title">Combined Features</h2>
+        <p class="card-description">
+          Experience all enhanced features working together in a single component.
+        </p>
+        <input 
+          type="text" 
+          class="input-field" 
+          placeholder="Search with debouncing..."
+          yq-on:input="searchInput debounce:300"
+        >
+        <button class="button" yq-on:click="addItem throttle:200">Add Item</button>
+        <button class="button" yq-on:click="clearItems">Clear All</button>
+        <div class="success-display">
+          <strong>Search Results:</strong>
+          <ul id="search-results">
+            <li yq-for="item in searchResults">{{ item }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Usage Examples -->
+    <div class="demo-card">
+      <h2 class="card-title">Usage Examples</h2>
+      
+      <h3>Debounce Directive:</h3>
+      <div class="code-block">
+&lt;input 
+  yq-on:input="handleInput debounce:500" 
+  placeholder="Debounced input"
+&gt;
+      </div>
+      
+      <h3>Throttle Directive:</h3>
+      <div class="code-block">
+&lt;button 
+  yq-on:click="handleClick throttle:1000"
+&gt;
+  Click me
+&lt;/button&gt;
+      </div>
+      
+      <h3>Performance Monitoring:</h3>
+      <div class="code-block">
+import { EnhancedErrorHandler } from 'yq-sanyi'
+
+// Get performance metrics
+const metrics = EnhancedErrorHandler.getPerformanceMetrics()
+
+// Reset metrics
+EnhancedErrorHandler.resetMetrics()
+      </div>
+      
+      <h3>Template Validation:</h3>
+      <div class="code-block">
+import { ValidationUtils } from 'yq-sanyi'
+
+const validation = ValidationUtils.validateTemplate(template)
+if (!validation.valid) {
+  console.log('Errors:', validation.errors)
+}
+      </div>
+    </div>
+  </div>
+
+  <script src="../packages/core/dist/core.global.js"></script>
+  <script>
+    yq.define('enhanced-demo-component', {
+      template: `
+        <div class="demo-container">
+          <h2>Performance Counter</h2>
+          <button yq-on:click="incrementCounter">Increment: {{ counter }}</button>
+          <button yq-on:click="resetCounter">Reset</button>
+          
+          <div class="performance-metrics">
+            <div>Update Count: {{ metrics.updateCount }}</div>
+            <div>Avg Update Time: {{ metrics.averageUpdateTime.toFixed(2) }}ms</div>
+            <div>Slowest Update: {{ metrics.slowestUpdateTime.toFixed(2) }}ms</div>
+          </div>
+        </div>
+      `,
+      style: `
+        .demo-container { padding: 20px; }
+        .performance-metrics { 
+          background: #f0f0f0; 
+          padding: 15px; 
+          border-radius: 8px; 
+          margin-top: 15px;
+        }
+      `,
+      script: function() {
+      return {
+        state: {
+          counter: 0,
+          metrics: {
+            updateCount: 0,
+            averageUpdateTime: 0,
+            slowestUpdateTime: 0,
+            derivationCount: 0,
+            effectCount: 0
+          }
+        },
+        
+        incrementCounter: function(state) {
+          state.counter++
+          this.updateMetrics()
+        },
+        
+        resetCounter: function(state) {
+          state.counter = 0
+          this.updateMetrics()
+        },
+        
+        updateMetrics: function() {
+          const metrics = yq.EnhancedErrorHandler.getPerformanceMetrics()
+          this.state.metrics = { ...metrics }
+        }
+      }
+    }
+  </script>
+</body>
+</html>
