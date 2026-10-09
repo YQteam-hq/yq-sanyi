@@ -1084,5 +1084,17 @@ export {
   // Enhanced utilities
   EnhancedErrorHandler,
   DebounceUtils,
-  ValidationUtils
+  ValidationUtils,
+  // Advanced state management
+  AdvancedStateManagement,
+  StateUtils,
+  // Debugging tools
+  DebugTools,
+  DebugUtils,
+  // Component composition
+  ComponentComposition,
+  CompositionUtils,
+  // Accessibility
+  AccessibilityManager,
+  AccessibilityUtils
 }

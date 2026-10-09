@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comprehensive yq-sanyi Demo - Advanced Features</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #1a202c;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      text-align: center;
+      color: #2d3748;
+      margin-bottom: 8px;
+      font-size: 2.8rem;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #718096;
+      margin-bottom: 32px;
+      font-size: 1.2rem;
+    }
+    
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    
+    .demo-card {
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 24px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .demo-card:hover {
+      border-color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+    }
+    
+    .demo-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+    
+    .card-title {
+      color: #2d3748;
+      margin: 0 0 16px 0;
+      font-size: 1.4rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .card-icon {
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+    }
+    
+    .card-description {
+      color: #4a5568;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    
+    .button {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .button:active {
+      transform: translateY(0);
+    }
+    
+    .button.secondary {
+      background: linear-gradient(135deg, #48bb78, #38a169);
+    }
+    
+    .button.danger {
+      background: linear-gradient(135deg, #f56565, #e53e3e);
+    }
+    
+    .input-field {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+      margin-bottom: 12px;
+    }
+    
+    .input-field:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .performance-metrics {
+      background: #edf2f7;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+    }
+    
+    .metric-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    
+    .metric-label {
+      color: #4a5568;
+    }
+    
+    .metric-value {
+      color: #2d3748;
+      font-weight: 600;
+    }
+    
+    .error-display {
+      background: #fed7d7;
+      border: 1px solid #fc8181;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      color: #742a2a;
+    }
+    
+    .success-display {
+      background: #c6f6d5;
+      border: 1px solid #9ae6b4;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      color: #22543d;
+    }
+    
+    .warning-display {
+      background: #fef5e7;
+      border: 1px solid #f6ad55;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      color: #744210;
+    }
+    
+    .code-block {
+      background: #2d3748;
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      overflow-x: auto;
+    }
+    
+    .feature-section {
+      background: #f0fff4;
+      border: 1px solid #9ae6b4;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    
+    .feature-title {
+      color: #22543d;
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    
+    .feature-description {
+      color: #2f855a;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    
+    .tab-container {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .tab {
+      padding: 12px 24px;
+      background: none;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-size: 1rem;
+      color: #718096;
+      transition: all 0.3s ease;
+    }
+    
+    .tab.active {
+      background: #667eea;
+      color: white;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .component-preview {
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      min-height: 100px;
+    }
+    
+    .accessibility-panel {
+      background: #e6fffa;
+      border: 1px solid #4fd1c5;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    
+    .accessibility-score {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    
+    .score-excellent {
+      background: #c6f6d5;
+      color: #22543d;
+    }
+    
+    .score-good {
+      background: #fef5e7;
+      color: #744210;
+    }
+    
+    .score-poor {
+      background: #fed7d7;
+      color: #742a2a;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 16px;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .tab-container {
+        flex-wrap: wrap;
+      }
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #e2e8f0;
+      border-top: 2px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Comprehensive yq-sanyi Demo</h1>
+    <p class="subtitle">Advanced Features Showcase - State Management, Debugging, Composition & Accessibility</p>
+    
+    <!-- Feature Overview -->
+    <div class="feature-section">
+      <div class="feature-title">🚀 Advanced Features Overview</div>
+      <div class="feature-description">
+        This comprehensive demo showcases yq-sanyi's advanced capabilities including:
+        <strong>Advanced State Management</strong>, <strong>Built-in Debugging Tools</strong>, 
+        <strong>Component Composition</strong>, and <strong>Accessibility Enhancements</strong>.
+        Explore each feature through interactive examples and see how they work together.
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tab-container">
+      <button class="tab active" yq-on:click="switchTab state">State Management</button>
+      <button class="tab" yq-on:click="switchTab debug">Debugging Tools</button>
+      <button class="tab" yq-on:click="switchTab composition">Component Composition</button>
+      <button class="tab" yq-on:click="switchTab accessibility">Accessibility</button>
+    </div>
+
+    <!-- State Management Tab -->
+    <div id="state-tab" class="tab-content active">
+      <div class="demo-grid">
+        <!-- Persistence Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">💾</div>
+            State Persistence
+          </h2>
+          <p class="card-description">
+            Test localStorage and sessionStorage persistence with automatic loading and saving.
+          </p>
+          <button class="button" yq-on:click="saveToStorage debounce:300">Save to Storage</button>
+          <button class="button secondary" yq-on:click="loadFromStorage debounce:300">Load from Storage</button>
+          <button class="button danger" yq-on:click="clearStorage debounce:300">Clear Storage</button>
+          <div class="success-display">
+            <strong>Current Value:</strong> <span id="persisted-value">{{ persistedValue }}</span>
+          </div>
+        </div>
+
+        <!-- History Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">📊</div>
+            State History
+          </h2>
+          <p class="card-description">
+            Track state changes over time with undo/redo functionality and history visualization.
+          </p>
+          <input type="text" class="input-field" yq-model="historyInput" placeholder="Type to add to history">
+          <button class="button" yq-on:click="addToHistory debounce:300">Add to History</button>
+          <button class="button secondary" yq-on:click="undoHistory throttle:500">↶ Undo</button>
+          <button class="button secondary" yq-on:click="redoHistory throttle:500">↷ Redo</button>
+          <div class="component-preview">
+            <strong>History:</strong>
+            <ul id="history-list">
+              <li yq-for="item in historyItems">{{ item }}</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Async State Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">⚡</div>
+            Async State Management
+          </h2>
+          <p class="card-description">
+            Handle asynchronous operations with loading states, error handling, and data fetching.
+          </p>
+          <button class="button" yq-on:click="fetchData debounce:500">Fetch Data</button>
+          <button class="button secondary" yq-on:click="clearData debounce:300">Clear Data</button>
+          <div id="async-state-display">
+            <div yq-if="asyncState.loading">
+              <div class="loading-spinner"></div>
+              <span>Loading...</span>
+            </div>
+            <div yq-if="asyncState.error" class="error-display">
+              <strong>Error:</strong> {{ asyncState.error }}
+            </div>
+            <div yq-if="asyncState.data" class="success-display">
+              <strong>Data:</strong> {{ asyncState.data }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Validation Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">✅</div>
+            Form Validation
+          </h2>
+          <p class="card-description">
+            Real-time form validation with custom rules and error messages.
+          </p>
+          <input type="email" class="input-field" yq-model="email" placeholder="Enter email">
+          <input type="password" class="input-field" yq-model="password" placeholder="Enter password">
+          <button class="button" yq-on:click="validateForm debounce:300">Validate Form</button>
+          <div id="validation-result">
+            <div yq-if="emailError" class="error-display">{{ emailError }}</div>
+            <div yq-if="passwordError" class="error-display">{{ passwordError }}</div>
+            <div yq-if="formValid" class="success-display">Form is valid!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Debugging Tools Tab -->
+    <div id="debug-tab" class="tab-content">
+      <div class="demo-grid">
+        <!-- Debug Panel Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">🔍</div>
+            Debug Panel
+          </h2>
+          <p class="card-description">
+            Interactive debug panel with component tree, state history, and performance metrics.
+          </p>
+          <button class="button" yq-on:click="toggleDebugPanel debounce:300">Toggle Debug Panel</button>
+          <button class="button secondary" yq-on:click="generateDebugReport debounce:300">Generate Report</button>
+          <div id="debug-panel-container"></div>
+        </div>
+
+        <!-- Performance Monitoring Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">⚡</div>
+            Performance Monitoring
+          </h2>
+          <p class="card-description">
+            Monitor component performance with render times, update counts, and optimization suggestions.
+          </p>
+          <button class="button" yq-on:click="performHeavyOperation throttle:1000">Heavy Operation</button>
+          <button class="button secondary" yq-on:click="resetMetrics debounce:300">Reset Metrics</button>
+          <div class="performance-metrics">
+            <div class="metric-item">
+              <span class="metric-label">Render Count:</span>
+              <span class="metric-value">{{ metrics.renderCount }}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Average Render Time:</span>
+              <span class="metric-value">{{ metrics.averageRenderTime }}ms</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Slowest Render:</span>
+              <span class="metric-value">{{ metrics.slowestRender }}ms</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Memory Usage:</span>
+              <span class="metric-value">{{ metrics.memoryUsage }}MB</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- State Tracking Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">📈</div>
+            State Tracking
+          </h2>
+          <p class="card-description">
+            Track state changes with detailed logging, change history, and rollback capabilities.
+          </p>
+          <input type="text" class="input-field" yq-model="trackedInput" placeholder="Type to track changes">
+          <button class="button" yq-on:click="exportStateHistory debounce:300">Export History</button>
+          <button class="button secondary" yq-on:click="clearStateHistory debounce:300">Clear History</button>
+          <div class="component-preview">
+            <strong>Recent Changes:</strong>
+            <div id="state-changes">
+              <div yq-for="change in recentStateChanges">{{ change.timestamp }}: {{ change.path }} = {{ change.value }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error Boundary Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">🚨</div>
+            Error Boundary
+          </h2>
+          <p class="card-description">
+            Test error boundaries with graceful error handling and recovery options.
+          </p>
+          <button class="button" yq-on:click="triggerError debounce:500">Trigger Error</button>
+          <button class="button secondary" yq-on:click="recoverFromError debounce:300">Recover</button>
+          <div id="error-boundary-display">
+            <div yq-if="hasError" class="error-display">
+              <strong>Error:</strong> {{ errorMessage }}
+              <br>
+              <button class="button" yq-on:click="retryOperation debounce:300">Retry</button>
+            </div>
+            <div yq-if="!hasError" class="success-display">
+              Component is working normally
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Component Composition Tab -->
+    <div id="composition-tab" class="tab-content">
+      <div class="demo-grid">
+        <!-- Component Composition Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">🧩</div>
+            Component Composition
+          </h2>
+          <p class="card-description">
+            Create complex components by composing smaller components with shared state and context.
+          </p>
+          <button class="button" yq-on:click="composeComponents debounce:500">Compose Components</button>
+          <button class="button secondary" yq-on:click="extendComponent debounce:500">Extend Component</button>
+          <div class="component-preview">
+            <div id="composed-component">
+              <h3>Composed Component</h3>
+              <div id="header-slot">Header Content</div>
+              <div id="content-slot">Content will appear here</div>
+              <div id="footer-slot">Footer Content</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Layout System Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">🎨</div>
+            Layout System
+          </h2>
+          <p class="card-description">
+            Create responsive layouts with grid, flex, and stack compositions.
+          </p>
+          <select class="input-field" yq-model="selectedLayout">
+            <option value="grid">Grid Layout</option>
+            <option value="flex">Flex Layout</option>
+            <option value="stack">Stack Layout</option>
+          </select>
+          <button class="button" yq-on:click="applyLayout debounce:500">Apply Layout</button>
+          <div class="component-preview">
+            <div id="layout-container">
+              <div class="layout-header">Header</div>
+              <div class="layout-content">Main Content</div>
+              <div class="layout-sidebar">Sidebar</div>
+              <div class="layout-footer">Footer</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Higher Order Component Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">🔄</div>
+            Higher Order Components
+          </h2>
+          <p class="card-description">
+            Create reusable component enhancers with HOC pattern and shared functionality.
+          </p>
+          <button class="button" yq-on:click="applyHOC debounce:500">Apply HOC</button>
+          <button class="button secondary" yq-on:click="removeHOC debounce:500">Remove HOC</button>
+          <div class="component-preview">
+            <div id="hoc-component">
+              <div class="hoc-wrapper">
+                <div class="hoc-content">Base Component Content</div>
+                <div class="hoc-enhancement">HOC Enhancement Applied</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conditional Components Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">🔀</div>
+            Conditional Components
+          </h2>
+          <p class="card-description">
+            Dynamically render components based on conditions with fallback options.
+          </p>
+          <button class="button" yq-on:click="toggleCondition debounce:500">Toggle Condition</button>
+          <button class="button secondary" yq-on:click="setConditionValue debounce:500">Set Value</button>
+          <div class="component-preview">
+            <div id="conditional-component">
+              <div yq-if="showComponentA">
+                <div class="component-a">Component A is Active</div>
+              </div>
+              <div yq-else>
+                <div class="component-b">Component B is Active</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Accessibility Tab -->
+    <div id="accessibility-tab" class="tab-content">
+      <div class="demo-grid">
+        <!-- Accessibility Checker Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">♿</div>
+            Accessibility Checker
+          </h2>
+          <p class="card-description">
+            Real-time accessibility validation with detailed reports and recommendations.
+          </p>
+          <button class="button" yq-on:click="runAccessibilityCheck debounce:500">Run Check</button>
+          <button class="button secondary" yq-on:click="generateAccessibilityReport debounce:500">Generate Report</button>
+          <div class="accessibility-panel">
+            <div class="metric-item">
+              <span class="metric-label">Accessibility Score:</span>
+              <span class="accessibility-score" id="accessibility-score">--</span>
+            </div>
+            <div id="accessibility-recommendations"></div>
+          </div>
+        </div>
+
+        <!-- Keyboard Navigation Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">⌨️</div>
+            Keyboard Navigation
+          </h2>
+          <p class="card-description">
+            Test keyboard navigation with focus management, tab order, and keyboard shortcuts.
+          </p>
+          <div class="component-preview">
+            <div class="keyboard-demo" tabindex="0" role="application">
+              <button class="button" yq-on:click="handleKeyboardAction">Button 1</button>
+              <button class="button" yq-on:click="handleKeyboardAction">Button 2</button>
+              <button class="button" yq-on:click="handleKeyboardAction">Button 3</button>
+            </div>
+            <p class="card-description">
+              Use Tab to navigate, Enter/Space to activate, Escape to close.
+            </p>
+          </div>
+        </div>
+
+        <!-- Screen Reader Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">🔊</div>
+            Screen Reader Support
+          </h2>
+          <p class="card-description">
+            Test screen reader compatibility with ARIA labels, live regions, and announcements.
+          </p>
+          <input type="text" class="input-field" yq-model="screenReaderInput" placeholder="Type for screen reader">
+          <button class="button" yq-on:click="announceToScreenReader debounce:500">Announce to Screen Reader</button>
+          <div class="component-preview">
+            <div id="screen-reader-output" aria-live="polite" aria-atomic="true">
+              Screen reader announcements will appear here
+            </div>
+          </div>
+        </div>
+
+        <!-- Accessible Forms Demo -->
+        <div class="demo-card">
+          <h2 class="card-title">
+            <div class="card-icon">📝</div>
+            Accessible Forms
+          </h2>
+          <p class="card-description">
+            Create accessible forms with proper labels, error handling, and keyboard navigation.
+          </p>
+          <form id="accessible-form" class="accessible-form">
+            <div class="form-group">
+              <label for="name">Name:</label>
+              <input type="text" id="name" class="input-field" yq-model="formName" required>
+            </div>
+            <div class="form-group">
+              <label for="email">Email:</label>
+              <input type="email" id="email" class="input-field" yq-model="formEmail" required>
+            </div>
+            <div class="form-group">
+              <label for="message">Message:</label>
+              <textarea id="message" class="input-field" yq-model="formMessage" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="button">Submit Form</button>
+          </form>
+          <div id="form-feedback"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Usage Examples -->
+    <div class="demo-card">
+      <h2 class="card-title">
+        <div class="card-icon">💡</div>
+        Usage Examples
+      </h2>
+      
+      <h3>Advanced State Management:</h3>
+      <div class="code-block">
+// State persistence
+const state = StateUtils.localStorageState('user-data', { name: '' })
+
+// State history
+const undoRedo = StateUtils.createUndoRedoState(initialState)
+
+// Async state management
+const asyncState = AdvancedStateManagement.createAsyncState()
+AdvancedStateManagement.executeAsync(asyncState, fetchData)
+
+// Form validation
+const field = AdvancedStateManagement.createFormField('')
+const validatedField = AdvancedStateManagement.validateFormField(field, rules)
+      </div>
+      
+      <h3>Debugging Tools:</h3>
+      <div class="code-block">
+// Enable debug mode
+DebugTools.configure({ enabled: true, performance: true })
+
+// Component debugging
+DebugTools.registerComponent('my-component', 'MyComponent', state)
+
+// State change tracking
+DebugTools.trackStateChange('counter', 0, 1)
+
+// Generate debug report
+const report = DebugTools.exportDebugData()
+      </div>
+      
+      <h3>Component Composition:</h3>
+      <div class="code-block">
+// Component composition
+const composed = ComponentComposition.compose('my-app', [header, content])
+
+// Component inheritance
+const extended = ComponentComposition.extend(base, extension)
+
+// Layout system
+const layout = ComponentComposition.createLayoutComponent(components, 'grid')
+
+// Higher order component
+const hoc = ComponentComposition.createHigherOrderComponent(base, enhance)
+      </div>
+      
+      <h3>Accessibility:</h3>
+      <div class="code-block">
+// Accessibility configuration
+AccessibilityManager.configure({ screenReader: true })
+
+// Accessible form
+const form = AccessibilityUtils.createAccessibleForm(fields, onSubmit)
+
+// Accessible modal
+const modal = AccessibilityUtils.createAccessibleModal(title, content)
+
+// Accessibility validation
+const violations = AccessibilityManager.validateElement(element)
+      </div>
+    </div>
+  </div>
+
+  <script src="../packages/core/dist/core.global.js"></script>
+  <script>
+    yq.define('comprehensive-demo-component', {
+      template: `
+        <div class="demo-container">
+          <h2>Comprehensive Demo</h2>
+          <p>Advanced yq-sanyi features demonstration</p>
+          
+          <!-- State Management -->
+          <div class="state-section">
+            <h3>State Management</h3>
+            <input type="text" yq-model="stateInput" placeholder="Type something...">
+            <button yq-on:click="updateState debounce:300">Update State</button>
+            <div>Current State: {{ stateInput }}</div>
+          </div>
+          
+          <!-- Debugging -->
+          <div class="debug-section">
+            <h3>Debugging</h3>
+            <button yq-on:click="logState">Log State</button>
+            <div>Debug Info: {{ debugInfo }}</div>
+          </div>
+          
+          <!-- Component Composition -->
+          <div class="composition-section">
+            <h3>Component Composition</h3>
+            <button yq-on:click="composeComponents">Compose Components</button>
+            <div>Composition Result: {{ compositionResult }}</div>
+          </div>
+          
+          <!-- Accessibility -->
+          <div class="accessibility-section">
+            <h3>Accessibility</h3>
+            <button yq-on:click="checkAccessibility">Check Accessibility</button>
+            <div>Accessibility Score: {{ accessibilityScore }}</div>
+          </div>
+        </div>
+      `,
+      style: `
+        .demo-container { padding: 20px; }
+        .state-section, .debug-section, .composition-section, .accessibility-section {
+          margin-bottom: 20px;
+          padding: 15px;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+        }
+        .section-title { margin-top: 0; color: #2d3748; }
+      `,
+      script: function() {
+        return {
+          state: {
+            stateInput: '',
+            debugInfo: 'No debug data',
+            compositionResult: 'Not composed',
+            accessibilityScore: '--'
+          },
+          
+          methods: {
+            updateState: function(state) {
+              state.stateInput = state.stateInput.toUpperCase()
+              this.updateDebugInfo()
+            },
+            
+            logState: function(state) {
+              console.log('Current state:', state.stateInput)
+              this.updateDebugInfo()
+            },
+            
+            updateDebugInfo: function() {
+              this.state.debugInfo = \`Last updated: \${new Date().toLocaleTimeString()}\`
+            },
+            
+            composeComponents: function(state) {
+              this.state.compositionResult = 'Components composed successfully'
+            },
+            
+            checkAccessibility: function(state) {
+              // Simulate accessibility check
+              const score = Math.floor(Math.random() * 40) + 60 // 60-100
+              this.state.accessibilityScore = score
+            }
+          }
+        }
+      }
+    })
+  </script>
+</body>
+</html>
