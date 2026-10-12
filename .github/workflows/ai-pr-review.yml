@@ -43,7 +43,7 @@ jobs:
           private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
 
       - name: AI review
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
           GLM_MODEL: glm-4.5-flash
