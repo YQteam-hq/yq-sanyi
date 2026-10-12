@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Features Demo - yq-sanyi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .demo-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .demo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .demo-card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .demo-card p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .feature-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .feature-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        .state-demo {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .state-display {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .state-display h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .state-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .state-item:last-child {
+            border-bottom: none;
+        }
+
+        .state-value {
+            font-weight: bold;
+            color: #764ba2;
+        }
+
+        .composition-demo {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+        }
+
+        .component-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .component-item h4 {
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .collaboration-demo {
+            height: 400px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            background: #f8f9fa;
+        }
+
+        .collaboration-canvas {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .user-cursor {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .user-cursor::after {
+            content: attr(data-name);
+            position: absolute;
+            top: 25px;
+            left: 0;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .debug-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 400px;
+            height: 600px;
+            background: #1a1a1a;
+            color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 999999;
+            font-family: monospace;
+            font-size: 12px;
+            display: none;
+        }
+
+        .debug-panel.active {
+            display: block;
+        }
+
+        .debug-header {
+            background: #333;
+            padding: 10px;
+            border-radius: 8px 8px 0 0;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .debug-content {
+            padding: 10px;
+            height: calc(100% - 120px);
+            overflow-y: auto;
+        }
+
+        .debug-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #333;
+            padding: 10px;
+            border-radius: 0 0 8px 8px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .tab-btn {
+            padding: 5px 10px;
+            background: #333;
+            border: none;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            background: #555;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .demo-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .user-list {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .user-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .user-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+        }
+
+        .user-status.offline {
+            background: #f44336;
+        }
+
+        .chart-container {
+            height: 200px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            position: relative;
+        }
+
+        .chart-bar {
+            position: absolute;
+            bottom: 20px;
+            width: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px 4px 0 0;
+            transition: height 0.5s ease;
+        }
+
+        .chart-label {
+            position: absolute;
+            bottom: 0;
+            font-size: 0.8rem;
+            color: #666;
+            transform: translateX(-50%);
+        }
+
+        @media (max-width: 768px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .debug-panel {
+                width: 100%;
+                right: 0;
+                left: 0;
+                top: 0;
+                height: 100vh;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Comprehensive Features Demo</h1>
+            <p class="subtitle">Advanced State Management, Component Composition, Real-time Collaboration & Debugging Tools</p>
+        </header>
+
+        <!-- Metrics Overview -->
+        <div class="feature-section">
+            <h2>System Overview</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="active-users">1</div>
+                    <div class="metric-label">Active Users</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="component-count">0</div>
+                    <div class="metric-label">Components</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="state-updates">0</div>
+                    <div class="metric-label">State Updates</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="fps">60</div>
+                    <div class="metric-label">FPS</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="memory">0</div>
+                    <div class="metric-label">Memory (MB)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-grid">
+            <!-- State Management Demo -->
+            <div class="demo-card">
+                <h2>Advanced State Management</h2>
+                <p>Experience global state management with undo/redo, time-travel debugging, and advanced analytics.</p>
+                
+                <div class="state-demo">
+                    <div class="state-display">
+                        <h3>Global State</h3>
+                        <div class="state-item">
+                            <span>Counter:</span>
+                            <span class="state-value" id="counter-value">0</span>
+                        </div>
+                        <div class="state-item">
+                            <span>Message:</span>
+                            <span class="state-value" id="message-value">Hello World</span>
+                        </div>
+                        <div class="state-item">
+                            <span>Theme:</span>
+                            <span class="state-value" id="theme-value">light</span>
+                        </div>
+                    </div>
+                    
+                    <div class="demo-controls">
+                        <button class="btn" onclick="incrementCounter()">Increment</button>
+                        <button class="btn btn-secondary" onclick="decrementCounter()">Decrement</button>
+                        <button class="btn btn-success" onclick="updateMessage()">Update Message</button>
+                        <button class="btn btn-warning" onclick="toggleTheme()">Toggle Theme</button>
+                    </div>
+                    
+                    <div class="demo-controls">
+                        <button class="btn" onclick="undoState()">Undo</button>
+                        <button class="btn btn-secondary" onclick="redoState()">Redo</button>
+                        <button class="btn btn-success" onclick="clearHistory()">Clear History</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Component Composition Demo -->
+            <div class="demo-card">
+                <h2>Advanced Component Composition</h2>
+                <p>Explore component inheritance, mixins, higher-order components, and dynamic composition.</p>
+                
+                <div class="composition-demo">
+                    <div id="component-tree"></div>
+                    
+                    <div class="demo-controls">
+                        <button class="btn" onclick="createBaseComponent()">Create Base Component</button>
+                        <button class="btn btn-secondary" onclick="createExtendedComponent()">Create Extended Component</button>
+                        <button class="btn btn-success" onclick="createMixinComponent()">Create Mixin Component</button>
+                        <button class="btn btn-warning" onclick="createHOCComponent()">Create HOC Component</button>
+                    </div>
+                    
+                    <div class="demo-controls">
+                        <button class="btn" onclick="cloneComponent()">Clone Component</button>
+                        <button class="btn btn-secondary" onclick="exportComponent()">Export Component</button>
+                        <button class="btn btn-success" onclick="validateComponents()">Validate Components</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Real-time Collaboration Demo -->
+            <div class="demo-card">
+                <h2>Real-time Collaboration</h2>
+                <p>Experience real-time document collaboration with operational transformation and conflict resolution.</p>
+                
+                <div class="collaboration-demo">
+                    <div class="collaboration-canvas" id="collaboration-canvas">
+                        <div class="user-cursor" id="user1-cursor" style="background: #FF6B6B; left: 50px; top: 50px;" data-name="You">
+                            <div class="user-status"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="demo-controls">
+                    <button class="btn" onclick="addCollaborator()">Add Collaborator</button>
+                    <button class="btn btn-secondary" onclick="simulateNetworkActivity()">Simulate Activity</button>
+                    <button class="btn btn-success" onclick="exportCollaborationData()">Export Data</button>
+                    <button class="btn btn-warning" onclick="clearCollaboration()">Clear</button>
+                </div>
+                
+                <div class="user-list">
+                    <h3>Active Collaborators</h3>
+                    <div id="user-list"></div>
+                </div>
+            </div>
+
+            <!-- Debugging Tools Demo -->
+            <div class="demo-card">
+                <h2>Advanced Debugging Tools</h2>
+                <p>Monitor performance, track state changes, detect memory leaks, and analyze component behavior.</p>
+                
+                <div class="demo-controls">
+                    <button class="btn" onclick="toggleDebugPanel()">Toggle Debug Panel</button>
+                    <button class="btn btn-secondary" onclick="startPerformanceProfile()">Start Profile</button>
+                    <button class="btn btn-success" onclick="captureMemorySnapshot()">Capture Memory</button>
+                    <button class="btn btn-warning" onclick="simulateError()">Simulate Error</button>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-bar" style="left: 10px;" id="perf-bar"></div>
+                    <div class="chart-bar" style="left: 50px;" id="memory-bar"></div>
+                    <div class="chart-bar" style="left: 90px;" id="error-bar"></div>
+                    <div class="chart-bar" style="left: 130px;" id="network-bar"></div>
+                    <div class="chart-label" style="left: 25px;">Perf</div>
+                    <div class="chart-label" style="left: 65px;">Memory</div>
+                    <div class="chart-label" style="left: 105px;">Errors</div>
+                    <div class="chart-label" style="left: 145px;">Network</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Console -->
+        <div class="feature-section">
+            <h2>Interactive Console</h2>
+            <div class="demo-controls">
+                <button class="btn" onclick="runStressTest()">Run Stress Test</button>
+                <button class="btn btn-secondary" onclick="generateReport()">Generate Report</button>
+                <button class="btn btn-success" onclick="exportAllData()">Export All Data</button>
+                <button class="btn btn-warning" onclick="resetDemo()">Reset Demo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug Panel -->
+    <div class="debug-panel" id="debug-panel">
+        <div class="debug-header">
+            <h3>Debug Panel</h3>
+            <button class="btn" onclick="toggleDebugPanel()" style="width: 20px; height: 20px; padding: 0;">×</button>
+        </div>
+        <div class="debug-content" id="debug-content">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchDebugTab('events')">Events</button>
+                <button class="tab-btn" onclick="switchDebugTab('components')">Components</button>
+                <button class="tab-btn" onclick="switchDebugTab('performance')">Performance</button>
+                <button class="tab-btn" onclick="switchDebugTab('memory')">Memory</button>
+            </div>
+            <div id="debug-tab-content"></div>
+        </div>
+        <div class="debug-controls">
+            <button class="btn" onclick="clearDebugData()">Clear Data</button>
+            <button class="btn btn-secondary" onclick="exportDebugData()">Export</button>
+        </div>
+    </div>
+
+    <script>
+        // Global state management
+        class GlobalStateManager {
+            constructor() {
+                this.state = {
+                    counter: 0,
+                    message: 'Hello World',
+                    theme: 'light'
+                };
+                this.history = [];
+                this.historyIndex = -1;
+                this.listeners = new Set();
+                this.maxHistory = 50;
+                
+                this.saveState();
+            }
+            
+            setState(newState) {
+                const oldState = { ...this.state };
+                this.state = { ...this.state, ...newState };
+                
+                // Trim history if we're not at the end
+                if (this.historyIndex < this.history.length - 1) {
+                    this.history = this.history.slice(0, this.historyIndex + 1);
+                }
+                
+                this.saveState();
+                this.notifyListeners({ type: 'state-change', oldState, newState });
+            }
+            
+            saveState() {
+                const stateSnapshot = {
+                    state: { ...this.state },
+                    timestamp: Date.now()
+                };
+                
+                this.history.push(stateSnapshot);
+                
+                // Limit history size
+                if (this.history.length > this.maxHistory) {
+                    this.history.shift();
+                }
+                
+                this.historyIndex = this.history.length - 1;
+            }
+            
+            undo() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    this.state = { ...this.history[this.historyIndex].state };
+                    this.notifyListeners({ type: 'undo' });
+                }
+            }
+            
+            redo() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    this.state = { ...this.history[this.historyIndex].state };
+                    this.notifyListeners({ type: 'redo' });
+                }
+            }
+            
+            clearHistory() {
+                this.history = [];
+                this.historyIndex = -1;
+                this.saveState();
+                this.notifyListeners({ type: 'clear-history' });
+            }
+            
+            subscribe(listener) {
+                this.listeners.add(listener);
+                return () => this.listeners.delete(listener);
+            }
+            
+            notifyListeners(event) {
+                this.listeners.forEach(listener => listener(event));
+                updateMetrics();
+            }
+            
+            getState() {
+                return { ...this.state };
+            }
+        }
+
+        // Component composition system
+        class ComponentRegistry {
+            constructor() {
+                this.components = new Map();
+                this.instances = new Map();
+                this.instanceId = 0;
+            }
+            
+            createComponent(name, config) {
+                const id = `comp-${this.instanceId++}`;
+                const component = {
+                    id,
+                    name,
+                    config,
+                    state: {},
+                    props: {},
+                    children: [],
+                    parent: null,
+                    createdAt: Date.now()
+                };
+                
+                this.instances.set(id, component);
+                this.components.set(name, config);
+                
+                return component;
+            }
+            
+            extendComponent(name, baseName, extensions) {
+                const baseConfig = this.components.get(baseName);
+                if (!baseConfig) {
+                    throw new Error(`Base component ${baseName} not found`);
+                }
+                
+                const extendedConfig = {
+                    ...baseConfig,
+                    ...extensions,
+                    name,
+                    extends: baseName
+                };
+                
+                this.components.set(name, extendedConfig);
+                return this.createComponent(name, extendedConfig);
+            }
+            
+            cloneComponent(sourceId, newName) {
+                const source = this.instances.get(sourceId);
+                if (!source) {
+                    throw new Error(`Source component ${sourceId} not found`);
+                }
+                
+                const cloned = this.createComponent(newName, source.config);
+                cloned.state = { ...source.state };
+                cloned.props = { ...source.props };
+                
+                return cloned;
+            }
+            
+            validateComponents() {
+                const errors = [];
+                
+                for (const [name, config] of this.components) {
+                    if (!config.template) {
+                        errors.push(`Component ${name} missing template`);
+                    }
+                    if (!config.style) {
+                        errors.push(`Component ${name} missing style`);
+                    }
+                    if (config.extends && !this.components.has(config.extends)) {
+                        errors.push(`Component ${name} extends non-existent component ${config.extends}`);
+                    }
+                }
+                
+                return { valid: errors.length === 0, errors };
+            }
+            
+            exportComponent(name) {
+                const config = this.components.get(name);
+                if (!config) {
+                    throw new Error(`Component ${name} not found`);
+                }
+                
+                return JSON.parse(JSON.stringify(config));
+            }
+        }
+
+        // Real-time collaboration simulation
+        class CollaborationManager {
+            constructor() {
+                this.users = new Map();
+                this.documents = new Map();
+                this.operations = [];
+                this.userId = this.generateUserId();
+                this.addUser(this.userId, 'You');
+            }
+            
+            generateUserId() {
+                return `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            }
+            
+            addUser(id, name) {
+                const user = {
+                    id,
+                    name,
+                    color: this.generateUserColor(),
+                    online: true,
+                    lastSeen: Date.now(),
+                    cursor: { x: Math.random() * 300, y: Math.random() * 300 }
+                };
+                
+                this.users.set(id, user);
+                return user;
+            }
+            
+            generateUserColor() {
+                const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            simulateActivity() {
+                const users = Array.from(this.users.values());
+                users.forEach(user => {
+                    if (user.id !== this.userId) {
+                        user.cursor = {
+                            x: Math.random() * 300,
+                            y: Math.random() * 300
+                        };
+                    }
+                });
+            }
+            
+            addCollaborator() {
+                const id = this.generateUserId();
+                const name = `User ${this.users.size + 1}`;
+                this.addUser(id, name);
+                return { id, name };
+            }
+            
+            exportData() {
+                return {
+                    users: Array.from(this.users.values()),
+                    operations: this.operations,
+                    timestamp: Date.now()
+                };
+            }
+            
+            clear() {
+                this.users.clear();
+                this.operations = [];
+                this.addUser(this.userId, 'You');
+            }
+        }
+
+        // Debugging tools simulation
+        class DebuggingTools {
+            constructor() {
+                this.events = [];
+                this.profiles = [];
+                this.memorySnapshots = [];
+                this.metrics = {
+                    fps: 60,
+                    memory: 0,
+                    errors: 0,
+                    network: 0
+                };
+                
+                this.startMonitoring();
+            }
+            
+            startMonitoring() {
+                setInterval(() => {
+                    this.updateMetrics();
+                    this.capturePerformanceMetrics();
+                }, 1000);
+            }
+            
+            updateMetrics() {
+                this.metrics.fps = 60 - Math.random() * 10;
+                this.metrics.memory = Math.random() * 100;
+                this.metrics.errors = Math.floor(Math.random() * 5);
+                this.metrics.network = Math.floor(Math.random() * 20);
+                
+                this.updateMetricDisplay();
+            }
+            
+            updateMetricDisplay() {
+                document.getElementById('fps').textContent = Math.round(this.metrics.fps);
+                document.getElementById('memory').textContent = Math.round(this.metrics.memory);
+                
+                // Update chart bars
+                document.getElementById('perf-bar').style.height = `${(this.metrics.fps / 60) * 100}%`;
+                document.getElementById('memory-bar').style.height = `${(this.metrics.memory / 100) * 100}%`;
+                document.getElementById('error-bar').style.height = `${(this.metrics.errors / 5) * 100}%`;
+                document.getElementById('network-bar').style.height = `${(this.metrics.network / 20) * 100}%`;
+            }
+            
+            capturePerformanceMetrics() {
+                const event = {
+                    id: `event-${Date.now()}`,
+                    timestamp: Date.now(),
+                    type: 'performance',
+                    data: {
+                        fps: this.metrics.fps,
+                        memory: this.metrics.memory,
+                        errors: this.metrics.errors,
+                        network: this.metrics.network
+                    }
+                };
+                
+                this.events.push(event);
+                
+                // Limit events
+                if (this.events.length > 100) {
+                    this.events.shift();
+                }
+            }
+            
+            startProfile(name) {
+                const profile = {
+                    id: `profile-${Date.now()}`,
+                    name,
+                    startTime: Date.now(),
+                    endTime: 0,
+                    duration: 0,
+                    events: []
+                };
+                
+                this.profiles.push(profile);
+                return profile.id;
+            }
+            
+            stopProfile(profileId) {
+                const profile = this.profiles.find(p => p.id === profileId);
+                if (profile) {
+                    profile.endTime = Date.now();
+                    profile.duration = profile.endTime - profile.startTime;
+                    return profile;
+                }
+                return null;
+            }
+            
+            captureMemorySnapshot() {
+                const snapshot = {
+                    id: `snapshot-${Date.now()}`,
+                    timestamp: Date.now(),
+                    memory: this.metrics.memory,
+                    components: globalStateManager.state,
+                    events: this.events.slice(-10)
+                };
+                
+                this.memorySnapshots.push(snapshot);
+                return snapshot;
+            }
+            
+            simulateError() {
+                const error = {
+                    id: `error-${Date.now()}`,
+                    timestamp: Date.now(),
+                    type: 'error',
+                    message: 'Simulated error for debugging demonstration',
+                    stack: 'Error: Simulated error\n    at demo.js:1\n    at main.js:1'
+                };
+                
+                this.events.push(error);
+                this.metrics.errors++;
+                this.updateMetricDisplay();
+            }
+            
+            exportData() {
+                return {
+                    events: this.events,
+                    profiles: this.profiles,
+                    memorySnapshots: this.memorySnapshots,
+                    metrics: this.metrics,
+                    timestamp: Date.now()
+                };
+            }
+        }
+
+        // Initialize systems
+        const globalStateManager = new GlobalStateManager();
+        const componentRegistry = new ComponentRegistry();
+        const collaborationManager = new CollaborationManager();
+        const debuggingTools = new DebuggingTools();
+
+        // State management functions
+        function incrementCounter() {
+            globalStateManager.setState({ counter: globalStateManager.getState().counter + 1 });
+        }
+
+        function decrementCounter() {
+            globalStateManager.setState({ counter: globalStateManager.getState().counter - 1 });
+        }
+
+        function updateMessage() {
+            const messages = ['Hello World', 'Welcome to yq-sanyi', 'Advanced state management', 'Real-time collaboration'];
+            const currentMessage = globalStateManager.getState().message;
+            const nextMessage = messages[(messages.indexOf(currentMessage) + 1) % messages.length];
+            globalStateManager.setState({ message: nextMessage });
+        }
+
+        function toggleTheme() {
+            const currentTheme = globalStateManager.getState().theme;
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            globalStateManager.setState({ theme: newTheme });
+        }
+
+        function undoState() {
+            globalStateManager.undo();
+        }
+
+        function redoState() {
+            globalStateManager.redo();
+        }
+
+        function clearHistory() {
+            globalStateManager.clearHistory();
+        }
+
+        // Component composition functions
+        function createBaseComponent() {
+            const component = componentRegistry.createComponent('base-component', {
+                template: '<div class="component-item"><h4>Base Component</h4><p>This is a base component</p></div>',
+                style: '.component-item { border: 1px solid #ccc; padding: 10px; margin: 5px; }',
+                script: () => ({
+                    state: { name: 'Base Component' },
+                    methods: {
+                        getName() { return this.state.name; }
+                    }
+                })
+            });
+            
+            updateComponentTree();
+        }
+
+        function createExtendedComponent() {
+            const component = componentRegistry.extendComponent('extended-component', 'base-component', {
+                template: '<div class="component-item"><h4>Extended Component</h4><p>This extends the base component</p></div>',
+                script: () => ({
+                    state: { name: 'Extended Component', version: '2.0' },
+                    methods: {
+                        getName() { return this.state.name; },
+                        getVersion() { return this.state.version; }
+                    }
+                })
+            });
+            
+            updateComponentTree();
+        }
+
+        function createMixinComponent() {
+            const component = componentRegistry.createComponent('mixin-component', {
+                template: '<div class="component-item"><h4>Mixin Component</h4><p>This component uses mixins</p></div>',
+                style: '.component-item { background: #f0f0f0; }',
+                script: () => ({
+                    state: { 
+                        name: 'Mixin Component',
+                        mixins: ['logging', 'validation']
+                    },
+                    methods: {
+                        log(message) { console.log(message); },
+                        validate(data) { return data && data.length > 0; }
+                    }
+                })
+            });
+            
+            updateComponentTree();
+        }
+
+        function createHOCComponent() {
+            const component = componentRegistry.createComponent('hoc-component', {
+                template: '<div class="component-item"><h4>HOC Component</h4><p>This is a higher-order component</p></div>',
+                script: () => ({
+                    state: { 
+                        name: 'HOC Component',
+                        enhanced: true
+                    },
+                    methods: {
+                        enhance() { this.state.enhanced = true; }
+                    }
+                })
+            });
+            
+            updateComponentTree();
+        }
+
+        function cloneComponent() {
+            const components = Array.from(componentRegistry.instances.values());
+            if (components.length > 0) {
+                const source = components[components.length - 1];
+                const cloned = componentRegistry.cloneComponent(source.id, `cloned-${source.name}`);
+                updateComponentTree();
+            }
+        }
+
+        function exportComponent() {
+            const components = Array.from(componentRegistry.components.keys());
+            if (components.length > 0) {
+                const name = components[components.length - 1];
+                const exported = componentRegistry.exportComponent(name);
+                console.log('Exported component:', exported);
+            }
+        }
+
+        function validateComponents() {
+            const result = componentRegistry.validateComponents();
+            if (result.valid) {
+                console.log('All components are valid');
+            } else {
+                console.log('Component validation errors:', result.errors);
+            }
+        }
+
+        function updateComponentTree() {
+            const tree = document.getElementById('component-tree');
+            const components = Array.from(componentRegistry.instances.values());
+            
+            tree.innerHTML = components.map(comp => `
+                <div class="component-item">
+                    <h4>${comp.name}</h4>
+                    <p>ID: ${comp.id}</p>
+                    <p>Created: ${new Date(comp.createdAt).toLocaleTimeString()}</p>
+                </div>
+            `).join('');
+            
+            document.getElementById('component-count').textContent = components.length;
+        }
+
+        // Collaboration functions
+        function addCollaborator() {
+            const user = collaborationManager.addCollaborator();
+            updateUserList();
+            updateMetrics();
+        }
+
+        function simulateNetworkActivity() {
+            collaborationManager.simulateActivity();
+            updateUserList();
+        }
+
+        function exportCollaborationData() {
+            const data = collaborationManager.exportData();
+            console.log('Collaboration data:', data);
+        }
+
+        function clearCollaboration() {
+            collaborationManager.clear();
+            updateUserList();
+            updateMetrics();
+        }
+
+        function updateUserList() {
+            const userList = document.getElementById('user-list');
+            const users = Array.from(collaborationManager.users.values());
+            
+            userList.innerHTML = users.map(user => `
+                <div class="user-item">
+                    <div class="user-avatar" style="background: ${user.color}">
+                        ${user.name.charAt(0)}
+                    </div>
+                    <div>
+                        <div>${user.name}</div>
+                        <div class="user-status ${!user.online ? 'offline' : ''}"></div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Update user cursors
+            users.forEach(user => {
+                if (user.cursor) {
+                    const cursor = document.getElementById(`${user.id}-cursor`);
+                    if (cursor) {
+                        cursor.style.left = `${user.cursor.x}px`;
+                        cursor.style.top = `${user.cursor.y}px`;
+                    }
+                }
+            });
+        }
+
+        // Debugging functions
+        function toggleDebugPanel() {
+            const panel = document.getElementById('debug-panel');
+            panel.classList.toggle('active');
+        }
+
+        function switchDebugTab(tab) {
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            updateDebugTabContent(tab);
+        }
+
+        function updateDebugTabContent(tab) {
+            const content = document.getElementById('debug-tab-content');
+            
+            switch (tab) {
+                case 'events':
+                    const events = debuggingTools.events.slice(-10);
+                    content.innerHTML = events.map(event => `
+                        <div style="margin-bottom: 10px; padding: 10px; background: #333; border-radius: 4px;">
+                            <div style="color: #aaa;">${new Date(event.timestamp).toLocaleTimeString()}</div>
+                            <div style="color: #fff;">[${event.type}] ${event.message || 'Event'}</div>
+                        </div>
+                    `).join('');
+                    break;
+                case 'components':
+                    const components = Array.from(componentRegistry.instances.values());
+                    content.innerHTML = components.map(comp => `
+                        <div style="margin-bottom: 10px; padding: 10px; background: #333; border-radius: 4px;">
+                            <div style="color: #fff;">${comp.name}</div>
+                            <div style="color: #aaa;">ID: ${comp.id}</div>
+                        </div>
+                    `).join('');
+                    break;
+                case 'performance':
+                    const profiles = debuggingTools.profiles;
+                    content.innerHTML = profiles.map(profile => `
+                        <div style="margin-bottom: 10px; padding: 10px; background: #333; border-radius: 4px;">
+                            <div style="color: #fff;">${profile.name}</div>
+                            <div style="color: #aaa;">Duration: ${profile.duration || 'Running'}ms</div>
+                        </div>
+                    `).join('');
+                    break;
+                case 'memory':
+                    const snapshots = debuggingTools.memorySnapshots.slice(-5);
+                    content.innerHTML = snapshots.map(snapshot => `
+                        <div style="margin-bottom: 10px; padding: 10px; background: #333; border-radius: 4px;">
+                            <div style="color: #aaa;">${new Date(snapshot.timestamp).toLocaleTimeString()}</div>
+                            <div style="color: #fff;">Memory: ${snapshot.memory}MB</div>
+                        </div>
+                    `).join('');
+                    break;
+            }
+        }
+
+        function startPerformanceProfile() {
+            const profileId = debuggingTools.startProfile('Demo Profile');
+            console.log('Profile started:', profileId);
+            
+            // Stop after 5 seconds
+            setTimeout(() => {
+                const profile = debuggingTools.stopProfile(profileId);
+                console.log('Profile completed:', profile);
+            }, 5000);
+        }
+
+        function captureMemorySnapshot() {
+            const snapshot = debuggingTools.captureMemorySnapshot();
+            console.log('Memory snapshot captured:', snapshot);
+        }
+
+        function simulateError() {
+            debuggingTools.simulateError();
+        }
+
+        function clearDebugData() {
+            debuggingTools.events = [];
+            debuggingTools.profiles = [];
+            debuggingTools.memorySnapshots = [];
+            console.log('Debug data cleared');
+        }
+
+        function exportDebugData() {
+            const data = debuggingTools.exportData();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `debug-data-${Date.now()}.json`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        // Utility functions
+        function updateMetrics() {
+            const state = globalStateManager.getState();
+            const users = collaborationManager.users.size;
+            const events = debuggingTools.events.length;
+            
+            document.getElementById('counter-value').textContent = state.counter;
+            document.getElementById('message-value').textContent = state.message;
+            document.getElementById('theme-value').textContent = state.theme;
+            document.getElementById('active-users').textContent = users;
+            document.getElementById('state-updates').textContent = events;
+        }
+
+        function runStressTest() {
+            console.log('Starting stress test...');
+            
+            // Simulate heavy load
+            for (let i = 0; i < 1000; i++) {
+                setTimeout(() => {
+                    globalStateManager.setState({ 
+                        counter: Math.floor(Math.random() * 1000),
+                        message: `Stress test message ${i}`
+                    });
+                }, i * 10);
+            }
+            
+            console.log('Stress test completed');
+        }
+
+        function generateReport() {
+            const report = {
+                timestamp: Date.now(),
+                state: globalStateManager.getState(),
+                components: Array.from(componentRegistry.instances.values()),
+                collaboration: collaborationManager.exportData(),
+                debugging: debuggingTools.exportData()
+            };
+            
+            console.log('Generated report:', report);
+        }
+
+        function exportAllData() {
+            const data = {
+                state: globalStateManager.getState(),
+                components: Array.from(componentRegistry.instances.values()),
+                collaboration: collaborationManager.exportData(),
+                debugging: debuggingTools.exportData(),
+                timestamp: Date.now()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `comprehensive-demo-data-${Date.now()}.json`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function resetDemo() {
+            // Reset all systems
+            globalStateManager.clearHistory();
+            componentRegistry.components.clear();
+            componentRegistry.instances.clear();
+            collaborationManager.clear();
+            debuggingTools.events = [];
+            debuggingTools.profiles = [];
+            debuggingTools.memorySnapshots = [];
+            
+            updateComponentTree();
+            updateUserList();
+            updateMetrics();
+            
+            console.log('Demo reset');
+        }
+
+        // Initialize demo
+        document.addEventListener('DOMContentLoaded', () => {
+            updateMetrics();
+            updateComponentTree();
+            updateUserList();
+            
+            // Subscribe to state changes
+            globalStateManager.subscribe((event) => {
+                console.log('State change:', event);
+                updateMetrics();
+            });
+            
+            console.log('Comprehensive Features Demo initialized');
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 'd':
+                        e.preventDefault();
+                        toggleDebugPanel();
+                        break;
+                    case 'p':
+                        e.preventDefault();
+                        startPerformanceProfile();
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        generateReport();
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        exportAllData();
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
