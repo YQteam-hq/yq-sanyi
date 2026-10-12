@@ -150,7 +150,7 @@ jobs:
           PY
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ steps.bot.outputs.token || github.token }}
           commit-message: "chore: AI autofix"
