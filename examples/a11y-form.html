@@ -49,8 +49,8 @@
             error: '',
             focused: false
           },
-          labelFor: function (s) { return s === '' ? '' : '邮箱输入框' },
-          pwLabel: function (s) { return '密码输入框' },
+          labelFor: function (name) { return name === '' ? '' : '邮箱输入框' },
+          pwLabel: function () { return '密码输入框' },
           markFocus: function (s) { s.focused = true },
           validate: function (s) {
             s.error = s.email.indexOf('@') < 0 ? '邮箱格式不对' : ''
@@ -60,7 +60,7 @@
           },
           submit: function (s, ev) {
             ev.preventDefault()
-            console.log('submit:', s.email, s.pw)
+            console.log('submit:', s.email)
           }
         }
       }
