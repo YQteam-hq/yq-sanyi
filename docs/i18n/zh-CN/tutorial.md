@@ -529,6 +529,28 @@ yq.scoper.updateTheme({
 
 钩子名是保留名：它们不会成为事件处理函数，因此无法在 `yq-on:*` 上绑定名为 `onMount` 的处理器。
 
+### 运行时告警
+
+组件内部的失败——挂载或更新时抛错、事件处理函数抛错、`$emit` 的负载无法解析——都会打印日志并发布到错误总线。`yq.onError(fn)` 订阅这些告警，返回值用于取消订阅：
+
+```js
+const stop = yq.onError(function (error, info) {
+  reportToServer(error.message, info.phase, info.component)
+})
+```
+
+`info` 描述失败发生的位置：
+
+| 字段 | 含义 |
+| --- | --- |
+| `phase` | `mount`、`update`、`unmount`、`event` 或 `emit` |
+| `component` | 组件名，组件阶段与处理函数失败时存在 |
+| `event` / `handler` | `event` 阶段的 DOM 事件名与处理器表达式 |
+| `event` | `emit` 阶段被派发的事件名 |
+| `timestamp` | 失败被记录的时间 |
+
+订阅者自身抛错不会影响其他订阅者。被 `withErrorBoundary` 包裹的组件同样通过这条总线上报，每次失败只上报一次，同时还会渲染其兜底内容。
+
 ## 命令式 API
 
 声明式是主路径，但运行时同样导出命令式 API 供编程式挂载：`createComponent`、`mountComponent`、`updateComponent`、`unmountComponent`，配合 `effect` 与 `setLifecycleHooks` 管理副作用与观察生命周期：

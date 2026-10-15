@@ -22,3 +22,7 @@ export function emitError(error: Error, errorInfo: any): void {
 export function _resetErrorHandlers(): void {
   errorHandlers.length = 0
 }
+
+export function reportError(error: unknown, info: any): void {
+  emitError(error instanceof Error ? error : new Error(String(error)), info)
+}
