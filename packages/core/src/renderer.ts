@@ -1,7 +1,7 @@
 import type { SNode, Slot, Cdo, RenderContext, ComponentInstance, ComponentOptions, ScoperOptions, Scoper, StyleInjection, LifecycleHooks, ParsedPart, ComponentDefinition } from './index.js'
 import { parseTemplate, createRenderContext, resolvePath, generateScopeId, createStateProxy, lookup, define } from './index.js'
 import { ErrorBoundary } from './error-boundary.js'
-import { emitError } from './error-bus.js'
+import { reportError } from './error-bus.js'
 import { findParentInstance } from './elements.js'
 
 function isNestedInstanceHost(element: Element): boolean {
@@ -132,7 +132,7 @@ function bindSlotEvent(element: Element, slot: Extract<Slot, { kind: 'event' }>,
         handler.call(parentInstance.container, parentInstance.state, event)
       } catch (error) {
         console.error(`[yq:event] handler "${slot.handler}" failed:`, error)
-        emitError(error as Error, { phase: 'event', component: parentInstance.name, event: slot.event, handler: slot.handler, timestamp: Date.now() })
+        reportError(error, { phase: 'event', component: parentInstance.name, event: slot.event, handler: slot.handler, timestamp: Date.now() })
       }
     }
   } else {
@@ -445,7 +445,7 @@ function bindRowEvents(cdo: Cdo, containerNode: SNode, rowElement: Element, rowC
           handler.call(host, rowState, ...argPaths.map(p => resolvePath(rowState, p)), event)
         } catch (error) {
           console.error(`[yq:event] handler "${rawHandler}" failed:`, error)
-          emitError(error as Error, { phase: 'event', component: cdo.name, event: slot.event, handler: rawHandler, timestamp: Date.now() })
+          reportError(error, { phase: 'event', component: cdo.name, event: slot.event, handler: rawHandler, timestamp: Date.now() })
         }
       }
     } else {
@@ -907,7 +907,7 @@ function createEmitListener(handlerName: string, getState: () => Record<string, 
       target.dispatchEvent(event as Event)
     } catch (error) {
       console.error(`[yq:emit] "$emit(${eventName})" failed:`, error)
-      emitError(error as Error, { phase: 'emit', event: eventName, timestamp: Date.now() })
+      reportError(error, { phase: 'emit', event: eventName, timestamp: Date.now() })
     }
   }
 }
@@ -931,7 +931,7 @@ function bindEvents(instance: ComponentInstance): void {
           handler.call(instance.container, instance.state, event)
         } catch (error) {
           console.error(`[yq:event] handler "${slot.handler}" failed:`, error)
-          emitError(error as Error, { phase: 'event', component: instance.name, event: slot.event, handler: slot.handler, timestamp: Date.now() })
+          reportError(error, { phase: 'event', component: instance.name, event: slot.event, handler: slot.handler, timestamp: Date.now() })
         }
       }
     } else {
@@ -1354,7 +1354,7 @@ function mountComponent(instance: ComponentInstance): void {
         error: error as Error
       })
     } else {
-      emitError(error as Error, { phase: 'mount', component: instance.name, timestamp: Date.now() })
+      reportError(error, { phase: 'mount', component: instance.name, timestamp: Date.now() })
     }
   }
 }
@@ -1408,7 +1408,7 @@ function updateComponent(instance: ComponentInstance): void {
         error: error as Error
       })
     } else {
-      emitError(error as Error, { phase: 'update', component: instance.name, timestamp: Date.now() })
+      reportError(error, { phase: 'update', component: instance.name, timestamp: Date.now() })
     }
   }
 }
@@ -1481,7 +1481,7 @@ function unmountComponent(instance: ComponentInstance): void {
     instance.lastErrorTime = null
   } catch (error) {
     console.error(`[yq:lifecycle] Component ${instance.name} unmount failed:`, error)
-    emitError(error as Error, { phase: 'unmount', component: instance.name, timestamp: Date.now() })
+    reportError(error, { phase: 'unmount', component: instance.name, timestamp: Date.now() })
   }
 }
 

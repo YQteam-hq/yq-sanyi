@@ -1,7 +1,7 @@
 import type { ComponentInstance } from './index.js'
 import { lookup, isValidTagName } from './index.js'
 import { createInstanceFromCdo, mountComponent, unmountComponent, bindEvents, unbindEvents } from './renderer.js'
-import { emitError } from './error-bus.js'
+import { reportError } from './error-bus.js'
 
 const registeredElements = new Set<string>()
 
@@ -43,7 +43,7 @@ export function registerElement(name: string): void {
         this._yqMounted = false
         this._yqInstance = null
         console.error(`[yq:lifecycle] Component ${name} mount failed:`, error)
-        emitError(error as Error, { phase: 'mount', component: name, timestamp: Date.now() })
+        reportError(error, { phase: 'mount', component: name, timestamp: Date.now() })
       }
     }
 
