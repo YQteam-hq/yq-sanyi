@@ -932,6 +932,11 @@ function define(name: string, definition: ComponentDefinition): ComponentDefinit
   if (typeof name !== 'string' || name.length === 0) {
     throw new TypeError('component name must be a non-empty string')
   }
+  if (!isValidTagName(name)) {
+    throw new TypeError(
+      'component name must be a valid custom element tag name (lowercase, containing a hyphen, not reserved): ' + name
+    )
+  }
   if (typeof definition !== 'object' || definition === null) {
     throw new TypeError('component definition must be an object')
   }
