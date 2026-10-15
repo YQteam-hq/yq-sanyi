@@ -35,14 +35,16 @@ test('yq-for rows support their own event bindings', async () => {
     }
   })
   const host = mount('x-row-todo')
-  const ul = host._yqInstance.root.children[0]
-  assert.equal(ul.children.length, 3)
-  const delBtn = ul.children[1].children[1]
+  // yq-for replaces host with rows; root.children are the rows directly
+  const rows = host._yqInstance.root.children
+  assert.equal(rows.length, 3)
+  // row2 (id=2): delete its button (button is row.children[1])
+  const delBtn = rows[1].children[1]
   delBtn.dispatch('click')
   await flush()
-  assert.equal(ul.children.length, 2)
-  assert.equal(ul.children[0].children[0].textContent, 'a')
-  assert.equal(ul.children[1].children[0].textContent, 'c')
+  assert.equal(host._yqInstance.root.children.length, 2)
+  assert.equal(host._yqInstance.root.children[0].children[0].textContent, 'a')
+  assert.equal(host._yqInstance.root.children[1].children[0].textContent, 'c')
   host.disconnectedCallback()
 })
 
@@ -62,7 +64,7 @@ test('row event handlers receive the row state', async () => {
     }
   })
   const host = mount('x-row-state')
-  const button = host._yqInstance.root.children[0].children[0].children[0]
+  const button = host._yqInstance.root.children[0].children[0]
   button.dispatch('click')
   await flush()
   assert.deepEqual(seen, ['a'])
