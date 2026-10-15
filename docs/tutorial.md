@@ -442,10 +442,12 @@ The `style` field is rewritten so its selectors only match inside the component'
 
 ### How a style is scoped
 
-`define` gives every component definition a scope id, and the `style` string is rewritten before it reaches the page: each selector gets the scope attribute appended, so `.panel` becomes `.panel[data-yq-scope="..."]` and can only match nodes the framework marked with the same scope. Three rules are worth knowing:
+`define` gives every component definition a scope id, and the `style` string is rewritten before it reaches the page: each selector gets the scope attribute appended, so `.panel` becomes `.panel[data-yq-scope="..."]` and can only match nodes the framework marked with the same scope. Five rules are worth knowing:
 
+- Every selector of a comma separated list is scoped on its own, so `h1, h2` becomes `h1[data-yq-scope="..."], h2[data-yq-scope="..."]`.
 - A selector that starts with `*` is left untouched, so a component cannot scope a page-wide reset by accident.
 - Pseudo-classes and pseudo-elements stay attached to the selector they extend, so `.panel:hover` becomes `.panel[data-yq-scope="..."]:hover`.
+- At-rules are recognised. `@media`, `@supports`, `@container` and `@layer` keep their rules and the rules inside them are scoped, while `@keyframes` and `@font-face` are copied verbatim because they contain no selector list.
 - The rewritten rule set is injected once per definition. A second instance only raises a reference count, and the `<style>` element disappears when the count reaches zero, which is what happens when the last instance unmounts.
 
 The rewriting is a pure function, so it can be inspected without mounting anything:

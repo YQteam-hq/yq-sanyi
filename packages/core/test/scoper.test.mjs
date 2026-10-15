@@ -60,7 +60,7 @@ test('generateScopedCSS 保留全局选择器', () => {
   assert.ok(globalScoped.includes('.local-class[data-yq-scope="test-scope"]'))
 })
 
-test('generateScopedCSS 保留伪类选择器', () => {
+test('generateScopedCSS keeps the scope attribute in front of a pseudo-class', () => {
   const pseudoCSS = `
   .button:hover {
     color: blue;
@@ -70,8 +70,9 @@ test('generateScopedCSS 保留伪类选择器', () => {
   }
 `
   const pseudoScoped = generateScopedCSS(pseudoCSS, 'test-scope')
-  assert.ok(pseudoScoped.includes('.button:hover'))
-  assert.ok(pseudoScoped.includes('.input:focus'))
+  assert.ok(pseudoScoped.includes('.button[data-yq-scope="test-scope"]:hover'))
+  assert.ok(pseudoScoped.includes('.input[data-yq-scope="test-scope"]:focus'))
+  assert.ok(!pseudoScoped.includes('.button:hover'))
 })
 
 test('injectStyle 注入样式并 removeStyle 移除', () => {
