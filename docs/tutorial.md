@@ -120,6 +120,14 @@ Tag names follow the custom element rules: start with a lowercase letter, contai
 <div>{{ greeting }}, {{ user.name }}</div>
 ```
 
+A binding also works inside an element that holds other elements. The text around the children stays where it is written and only the bound part is updated:
+
+```html
+<p>Hello <b>{{ user.name }}</b>, you have {{ unread }}</p>
+```
+
+Each element renders one run of text in front of its child elements and one run behind them, so a template that interleaves text between several child elements (`<b>a</b> middle <i>b</i>`) puts that text behind both children.
+
 ### Attribute binding
 
 An attribute whose whole value is one placeholder is bound to state and written back on every update.
