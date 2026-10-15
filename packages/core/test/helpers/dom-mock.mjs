@@ -127,7 +127,48 @@ function makeElement(tag) {
     get() { return element.parentElement },
     configurable: true
   })
+  Object.defineProperty(element, 'firstChild', {
+    get() { return element.children[0] || null },
+    configurable: true
+  })
+  Object.defineProperty(element, 'lastChild', {
+    get() { return element.children[element.children.length - 1] || null },
+    configurable: true
+  })
   return element
+}
+
+function createTextLike(value) {
+  const node = {
+    nodeType: 3,
+    tagName: '#text',
+    children: [],
+    dataset: {},
+    listeners: {},
+    parentElement: null,
+    _value: String(value),
+    get nodeValue() {
+      return node._value
+    },
+    set nodeValue(next) {
+      node._value = String(next)
+    },
+    get textContent() {
+      return node._value
+    },
+    set textContent(next) {
+      node._value = String(next)
+    },
+    cloneNode() {
+      return createTextLike(node._value)
+    },
+    addEventListener() {},
+    removeEventListener() {},
+    remove() {
+      if (node.parentElement) node.parentElement.removeChild(node)
+    }
+  }
+  return node
 }
 
 function createElementLike(tag) {
@@ -180,6 +221,7 @@ function installGlobals() {
   }
   global.document = {
     createElement: (tag) => createElementLike(tag),
+    createTextNode: (value) => createTextLike(value),
     createDocumentFragment: () => {
       const frag = {
         children: [],

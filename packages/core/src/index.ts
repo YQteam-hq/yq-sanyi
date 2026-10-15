@@ -28,6 +28,7 @@ export interface SNode {
   children: SNode[]
   list: ListSpec | null
   cond: CondSpec | null
+  textSplit?: number
 }
 export type Slot =
   | { kind: 'text'; nodeId: number; partIndex: number; path?: string[] }
@@ -544,11 +545,10 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
         const tagStart = childContent.indexOf('<')
         const textPart = tagStart === -1 ? childContent : childContent.substring(0, tagStart)
         const textParts = parseTextParts(textPart, slots, node.id)
-        if (node.text.length === 0) {
-          node.text = textParts
-        } else {
-          node.text.push(...textParts)
+        if (node.children.length > 0 && node.textSplit === undefined) {
+          node.textSplit = node.text.length
         }
+        node.text.push(...textParts)
         childContent = tagStart === -1 ? '' : childContent.substring(tagStart)
       } else {
         const childResult = parseNode(childContent)

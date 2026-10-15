@@ -261,9 +261,9 @@ function assignPath(state: Record<string, any>, path: string[], value: any): voi
   current[path[path.length - 1]] = value
 }
 
-function composeText(snode: SNode, state: Record<string, any>): string {
+function composeParts(parts: ParsedPart[], state: Record<string, any>): string {
   let out = ''
-  for (const part of snode.text) {
+  for (const part of parts) {
     if ('static' in part) {
       out += part.static
     } else {
@@ -272,6 +272,26 @@ function composeText(snode: SNode, state: Record<string, any>): string {
     }
   }
   return out
+}
+
+function composeText(snode: SNode, state: Record<string, any>): string {
+  return composeParts(snode.text, state)
+}
+
+function staticParts(parts: ParsedPart[]): string {
+  let out = ''
+  for (const part of parts) {
+    if ('path' in part && Array.isArray(part.path)) {
+      out += '{{' + part.path.join('.') + '}}'
+    } else if ('static' in part) {
+      out += part.static
+    }
+  }
+  return out
+}
+
+function textSplitIndex(node: SNode): number {
+  return node.textSplit === undefined ? node.text.length : node.textSplit
 }
 
 function cloneStaticNode(node: SNode): Element {
@@ -294,29 +314,47 @@ function cloneStaticNode(node: SNode): Element {
     element.setAttribute(attr, currentValue)
   }
   
-  element.textContent = ''
-  for (const part of node.text) {
-    if ('path' in part && Array.isArray(part.path)) {
-      element.textContent += '{{' + part.path.join('.') + '}}'
-    } else if ('static' in part) {
-      element.textContent += part.static
-    }
+  const split = textSplitIndex(node)
+  const head = staticParts(node.text.slice(0, split))
+  const tail = staticParts(node.text.slice(split))
+  const mixed = node.children.length > 0 && typeof document.createTextNode === 'function'
+  if (!mixed) {
+    element.textContent = head + tail
+  } else if (head.length > 0) {
+    element.appendChild(document.createTextNode(head))
   }
   
   for (const child of node.children) {
     element.appendChild(cloneStaticNode(child))
   }
   
+  if (mixed && tail.length > 0) {
+    element.appendChild(document.createTextNode(tail))
+  }
+  
   return element
+}
+
+function writeTextNode(holder: unknown, text: string): void {
+  const target = holder as { nodeType?: number; nodeValue?: string } | null
+  if (target && target.nodeType === 3 && target.nodeValue !== text) {
+    target.nodeValue = text
+  }
 }
 
 function fillTextSlot(node: Element, slot: Extract<Slot, { kind: 'text' }>, context: RenderContext, cdo: Cdo): void {
   const snode = cdo.nodeIndex.get(slot.nodeId)
-  if (!snode || snode.children.length > 0) return
-  const text = composeText(snode, context.state)
-  if (node.textContent !== text) {
-    ;(node as HTMLElement).textContent = text
+  if (!snode) return
+  if (snode.children.length === 0) {
+    const text = composeText(snode, context.state)
+    if (node.textContent !== text) {
+      ;(node as HTMLElement).textContent = text
+    }
+    return
   }
+  const split = textSplitIndex(snode)
+  writeTextNode(node.firstChild, composeParts(snode.text.slice(0, split), context.state))
+  writeTextNode(node.lastChild, composeParts(snode.text.slice(split), context.state))
 }
 
 function fillAttrSlot(node: Element, slot: Extract<Slot, { kind: 'attr' }>, context: RenderContext): void {
@@ -479,7 +517,6 @@ function fillListRow(cdo: Cdo, containerNode: SNode, rowElement: Element, itemSt
   for (const childSlot of cdo.slots) {
     if (childSlot.kind === 'event') continue
     if (!containerIds.has(childSlot.nodeId)) continue
-    if (childSlot.nodeId === containerNode.id && childSlot.kind === 'text' && containerNode.children.length > 0) continue
     const target = childSlot.nodeId === containerNode.id ? rowElement : rowCache.get(childSlot.nodeId)
     if (!target) continue
     if (childSlot.kind === 'list' && childSlot.nodeId !== containerNode.id) {
