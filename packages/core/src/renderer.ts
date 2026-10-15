@@ -954,30 +954,87 @@ const styleInjections = new Map<string, StyleInjection>()
 const themeVariables = new Map<string, string>()
 const globalStyles = new Map<string, string>()
 
+const NESTED_AT_RULE = /^@(?:media|supports|container|layer|scope)/
+
+function scopeInsertIndex(selector: string): number {
+  let depth = 0
+  let cut = -1
+  let i = 0
+  while (i < selector.length) {
+    const char = selector[i]
+    if (char === '[' || char === '(') depth++
+    else if (char === ']' || char === ')') depth--
+    else if (depth === 0) {
+      if (char === '>' || char === '+' || char === '~') {
+        cut = -1
+      } else if (char <= ' ') {
+        let j = i
+        while (j < selector.length && (selector[j] <= ' ' || selector[j] === '>' || selector[j] === '+' || selector[j] === '~')) j++
+        if (j < selector.length) cut = -1
+        i = j
+        continue
+      } else if (char === ':' && cut === -1) {
+        cut = i
+      }
+    }
+    i++
+  }
+  return cut === -1 ? selector.length : cut
+}
+
+function scopeOneSelector(raw: string, scopeAttr: string): string {
+  const selector = raw.trim()
+  if (!selector || selector.startsWith('*')) return raw
+  const at = scopeInsertIndex(selector)
+  return selector.slice(0, at) + scopeAttr + selector.slice(at)
+}
+
+function splitSelectorList(prelude: string): string[] {
+  const parts: string[] = []
+  let depth = 0
+  let start = 0
+  for (let i = 0; i < prelude.length; i++) {
+    const char = prelude[i]
+    if (char === '[' || char === '(') {
+      depth++
+      continue
+    }
+    if (char === ']' || char === ')') {
+      depth--
+      continue
+    }
+    if (char === ',' && depth === 0) {
+      parts.push(prelude.slice(start, i))
+      start = i + 1
+    }
+  }
+  parts.push(prelude.slice(start))
+  return parts
+}
+
+function scopeRuleSet(cssText: string, scopeAttr: string): string {
+  let skip = 0
+  return cssText.replace(/([^{}]*)\{|\}/g, (match, prelude?: string) => {
+    if (match === '}') {
+      if (skip > 0) skip--
+      return match
+    }
+    if (skip > 0) {
+      skip++
+      return match
+    }
+    const head = (prelude || '').trim()
+    if (head.startsWith('@')) {
+      if (!NESTED_AT_RULE.test(head)) skip = 1
+      return match
+    }
+    return splitSelectorList(prelude || '').map(part => scopeOneSelector(part, scopeAttr)).join(',') + '{'
+  })
+}
+
 function generateScopedCSS(cssText: string, scopeId: string): string {
   if (!cssText.trim()) return ''
-  
-  const scopeAttr = `data-yq-scope="${scopeId}"`
-  
-  const scopedCSS = cssText
-    .replace(/([^{}]+)(?=[,{])/g, (selector) => {
-      if (selector.trim().startsWith('*')) {
-        return selector
-      }
-      
-      if (selector.includes(':') || selector.includes('::')) {
-        return selector
-      }
-      
-      const trimmedSelector = selector.trim()
-      if (trimmedSelector) {
-        return `${trimmedSelector}[${scopeAttr}]`
-      }
-      return selector
-    })
-    .replace(/([{}])/g, (match) => match)
-  
-  return scopedCSS
+  return scopeRuleSet(cssText, `[data-yq-scope="${scopeId}"]`)
 }
 
 function hashStyleKey(cssText: string, scopeId: string): string {
