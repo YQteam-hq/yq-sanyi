@@ -128,6 +128,13 @@ npm run serve
 <input value="{{ inputValue }}" placeholder="{{ placeholder }}">
 ```
 
+属性值遵循 HTML 规则：可以带引号也可以不带。不带引号的值在第一个空格或 `>` 处结束，因此 `value=hello` 没问题，而含空格的值必须加引号：
+
+```html
+<input value=hello>
+<input value="{{ inputValue }}">
+```
+
 ### 列表渲染
 
 在容器元素上加 `yq-for="item in items"`。框架为每个条目渲染一份副本，并让行与列表保持同步。

@@ -128,6 +128,13 @@ An attribute whose whole value is one placeholder is bound to state and written 
 <input value="{{ inputValue }}" placeholder="{{ placeholder }}">
 ```
 
+Attribute values follow the HTML rule: they may be quoted or unquoted. An unquoted value ends at the first space or at `>`, so `value=hello` is fine while a value that contains a space has to be quoted:
+
+```html
+<input value=hello>
+<input value="{{ inputValue }}">
+```
+
 ### List rendering
 
 Add `yq-for="item in items"` to a container element. The framework renders one copy per item and keeps the rows in sync with the list.
