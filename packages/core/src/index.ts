@@ -625,6 +625,8 @@ let allEffects: Effect[] = []
 let allDeriveds: any[] = []
 // M3-2: signal-aware derived tracker (parallel to effectStack for state())
 let activeSignalTracker: { signals: Set<any> } | null = null
+// The effect currently being evaluated, so signals read inside it can be tracked
+let activeEffect: Effect | null = null
 let batchQueue: Array<() => void> = []
 let isFlushing = false
 let flushScheduled = false
@@ -661,10 +663,20 @@ function trackState<T>(state: State<T>): void {
   }
 }
 
-function triggerState(state: State<any>): void {
+function scheduleEffect(effectObj: Effect): void {
+  const alreadyQueued = batchQueue.some(job => (job as any)._effect === effectObj)
+  if (!alreadyQueued) {
+    const job = () => { effectObj.fn() }
+    ;(job as any)._effect = effectObj
+    batchQueue.push(job)
+  }
+  scheduleFlush()
+}
+
+function scheduleReactive(seeds: Set<any>): void {
   const dirtyDeriveds: any[] = []
   for (const derivedObj of allDeriveds) {
-    if (derivedObj.dependencies.includes(state)) {
+    if (!derivedObj.dirty && derivedObj.dependencies.some((dep: any) => seeds.has(dep))) {
       derivedObj.dirty = true
       dirtyDeriveds.push(derivedObj)
     }
@@ -673,13 +685,13 @@ function triggerState(state: State<any>): void {
   while (queue.length > 0) {
     const dirtyDerived = queue.shift()!
     for (const derivedObj of allDeriveds) {
-      if (!derivedObj.dirty && derivedObj.dependencies.includes(dirtyDerived)) {
+      if (!derivedObj.dirty && derivedObj.dependencies.some((dep: any) => dep === dirtyDerived)) {
         derivedObj.dirty = true
         queue.push(derivedObj)
       }
     }
   }
-  const allDirty = new Set<State<any>>([state, ...dirtyDeriveds])
+  const allDirty = new Set<any>([...seeds, ...dirtyDeriveds])
   const pending = new Set<Effect>()
   for (const effect of allEffects) {
     for (const dep of effect.dependencies) {
@@ -691,14 +703,12 @@ function triggerState(state: State<any>): void {
   }
   if (pending.size === 0) return
   for (const effect of pending) {
-    const alreadyQueued = batchQueue.some(job => (job as any)._effect === effect)
-    if (!alreadyQueued) {
-      const job = () => { effect.fn() }
-      ;(job as any)._effect = effect
-      batchQueue.push(job)
-    }
+    scheduleEffect(effect)
   }
-  scheduleFlush()
+}
+
+function triggerState(state: State<any>): void {
+  scheduleReactive(new Set([state]))
 }
 
 export interface Signal<T> {
@@ -714,12 +724,14 @@ function signal<T>(initial: T): Signal<T> {
   const sig = {
     get(): T {
       if (activeSignalTracker) activeSignalTracker.signals.add(sig)
+      if (activeEffect && !activeEffect.dependencies.includes(sig)) activeEffect.dependencies.push(sig)
       return value
     },
     set(next: T): void {
       if (!Object.is(next, value)) {
         value = next
         for (const s of subscribers) s()
+        scheduleReactive(new Set([sig]))
       }
     },
     peek(): T { return value },
@@ -766,21 +778,27 @@ function derived<T>(computeFn: () => T): Derived<T> {
         this.computing = true
         effectStack.push({ fn: () => {}, dependencies: [] })
         activeSignalTracker = tracker
+        const savedEffect = activeEffect
+        activeEffect = null
         try {
           cachedValue = computeFn()
           this.dirty = false
         } finally {
           activeSignalTracker = null
+          activeEffect = savedEffect
           const currentEffect = effectStack.pop()
           if (currentEffect) {
             dependencies.length = 0
             dependencies.push(...currentEffect.dependencies)
           }
+          for (const s of tracker.signals) {
+            if (!dependencies.includes(s)) dependencies.push(s)
+          }
           // (Re)subscribe to any new signals read this pass
           for (const u of signalSubs) u()
           signalSubs.length = 0
           for (const s of tracker.signals) {
-            signalSubs.push((s as any).subscribe(() => { this.dirty = true }))
+            signalSubs.push((s as any).subscribe(() => { this.dirty = true; scheduleReactive(new Set([derivedObj])) }))
           }
           this.computing = false
         }
@@ -840,6 +858,8 @@ function effect(fn: () => void | (() => void), componentName?: string): () => vo
       allEffects.pop()
     }
     effectStack.push(effectObj)
+    const savedEffect = activeEffect
+    activeEffect = effectObj
     try {
       const result = fn()
       if (typeof result === 'function') {
@@ -847,6 +867,7 @@ function effect(fn: () => void | (() => void), componentName?: string): () => vo
       }
     } finally {
       effectStack.pop()
+      activeEffect = savedEffect
     }
     prevStart = prevEnd
     prevEnd = allEffects.length
