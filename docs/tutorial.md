@@ -288,26 +288,6 @@ Registered tags can be used inside another component's template. When a parent r
 </script>
 ```
 
-Registered tags can be used inside another component's template. When a parent renders, its children mount automatically; when the parent's element is removed from the page, the children unmount and release their listeners too.
-
-```html
-<script>
-  yq.define('yq-list-item', {
-    template: '<li>{{ label }}</li>',
-    script: function () {
-      return { state: { label: 'item' } }
-    }
-  })
-
-  yq.define('yq-list', {
-    template: '<ul><yq-list-item></yq-list-item></ul>',
-    script: function () {
-      return { state: {} }
-    }
-  })
-</script>
-```
-
 ### Props
 
 Attributes on a child tag are passed to the child as props. Static attributes arrive as strings; a whole-value binding `{{ path }}` forwards the live parent value with its type, and the child re-renders when the parent value changes.
@@ -499,12 +479,12 @@ By default, styling relies on scope rewriting, which keeps CSS variables and inh
 
 ## Reactive primitives
 
-Components manage their own state automatically. For state shared outside a component, the core also exports `state`, `derived` and `effect` primitives with dependency tracking:
+Components manage their own state automatically. For state shared outside a component, the core also exports `signal`, `state`, `derived` and `effect` primitives with dependency tracking:
 
 ```html
 <script>
-  const count = yq.state(0)
-  const doubled = yq.derived(function () { return count.value * 2 })
+  const count = yq.signal(0)
+  const doubled = yq.derived(function () { return count.get() * 2 })
 
   yq.effect(function () {
     document.getElementById('double').textContent = doubled.value
@@ -516,7 +496,7 @@ Components manage their own state automatically. For state shared outside a comp
       return {
         state: {},
         bump: function () {
-          count.value = count.value + 1
+          count.set(count.get() + 1)
         }
       }
     }
@@ -524,7 +504,7 @@ Components manage their own state automatically. For state shared outside a comp
 </script>
 ```
 
-`state(x)` returns a box read through `.value`. `derived` recomputes only when its dependencies change. `effect` re-runs whenever a dependency changes and may return a cleanup function that runs before the next run and when the effect is disposed.
+`signal(x)` is the lowest-level primitive: it holds a single reactive value read with `.get()` and written with `.set()`, and is tracked by `derived` and `effect` exactly like `state`. `state(x)` returns a box read through `.value`. `derived` recomputes only when its dependencies change. `effect` re-runs whenever a dependency changes and may return a cleanup function that runs before the next run and when the effect is disposed.
 
 ## Lifecycle and cleanup
 
@@ -544,8 +524,6 @@ Remove a component element from the page and its state, DOM and listeners are go
   panel.remove()
 </script>
 ```
-
-`panel.remove()` triggers the unmount path for that instance — nothing else is required and no per-usage teardown code is needed. For components created through the imperative API, register effect cleanups on the instance and unmounting runs them automatically (see the next section).
 
 `panel.remove()` triggers the unmount path for that instance — nothing else is required and no per-usage teardown code is needed. For components created through the imperative API, register effect cleanups on the instance and unmounting runs them automatically (see the next section).
 
