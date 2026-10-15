@@ -577,6 +577,28 @@ A `script` function may return `onMount`, `onUpdate` and `onUnmount` functions n
 
 Hook names are reserved: they never become event handlers, so a handler named `onMount` in `yq-on:*` is not possible.
 
+### Runtime warnings
+
+A failure inside a component — a mount or update that throws, an event handler that throws, or a `$emit` payload that cannot be resolved — is logged and published to the error bus. `yq.onError(fn)` subscribes to those warnings and returns a function that unsubscribes:
+
+```js
+const stop = yq.onError(function (error, info) {
+  reportToServer(error.message, info.phase, info.component)
+})
+```
+
+`info` describes where the failure happened:
+
+| Field | Meaning |
+| --- | --- |
+| `phase` | `mount`, `update`, `unmount`, `event` or `emit` |
+| `component` | the component name, present for component phases and for handlers |
+| `event` / `handler` | the DOM event name and the handler expression, for the `event` phase |
+| `event` | the emitted event name, for the `emit` phase |
+| `timestamp` | when the failure was recorded |
+
+A subscriber that throws never stops the others. A component wrapped in `withErrorBoundary` still reports through the same bus, exactly once per failure, and additionally renders its fallback.
+
 ## Imperative API
 
 The declarative path is the primary one, but the runtime also exports an imperative API for programmatic mounting: `createComponent`, `mountComponent`, `updateComponent` and `unmountComponent`, plus `effect` and `setLifecycleHooks` for wiring side effects and observing the lifecycle:

@@ -1,6 +1,7 @@
 import type { ComponentInstance } from './index.js'
 import { lookup, isValidTagName } from './index.js'
 import { createInstanceFromCdo, mountComponent, unmountComponent, bindEvents, unbindEvents } from './renderer.js'
+import { emitError } from './error-bus.js'
 
 const registeredElements = new Set<string>()
 
@@ -32,11 +33,18 @@ export function registerElement(name: string): void {
       const entry = lookup(name)
       if (!entry) return
       this._yqMounted = true
-      const parentInstance = findParentInstance(this)
-      const instance = createInstanceFromCdo(name, entry.cdo, this, parentInstance)
-      this._yqInstance = instance
-      mountComponent(instance)
-      bindEvents(instance)
+      try {
+        const parentInstance = findParentInstance(this)
+        const instance = createInstanceFromCdo(name, entry.cdo, this, parentInstance)
+        this._yqInstance = instance
+        mountComponent(instance)
+        bindEvents(instance)
+      } catch (error) {
+        this._yqMounted = false
+        this._yqInstance = null
+        console.error(`[yq:lifecycle] Component ${name} mount failed:`, error)
+        emitError(error as Error, { phase: 'mount', component: name, timestamp: Date.now() })
+      }
     }
 
     disconnectedCallback(): void {
