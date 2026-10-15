@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { renderToString, renderFragmentToString, version } from '../node/renderToString.mjs';
+
+const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
 test('M2-3 renderToString: empty name throws', () => {
   assert.throws(() => renderToString(''), /non-empty/);
@@ -25,6 +28,7 @@ test('M2-3 renderFragmentToString: uses definition.name', () => {
   assert.equal(r.hostTag, 'yq-frag');
 });
 
-test('M2-3 version string exposes node skeleton marker', () => {
-  assert.equal(version, '0.4.0-node-skeleton');
+test('M2-3 version string tracks the package version', () => {
+  assert.equal(version, manifest.version);
+  assert.match(version, /^\d+\.\d+\.\d+$/);
 });
