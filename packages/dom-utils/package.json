@@ -1,0 +1,27 @@
+{
+  "name": "@yq-sanyi/dom-utils",
+  "version": "0.1.0",
+  "description": "DOM manipulation utilities with query selectors, event handling, and animations for yq-sanyi",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --minify --format=esm --target=es2019 --outfile=dist/index.mjs && esbuild src/index.ts --bundle --minify --format=cjs --target=es2019 --outfile=dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "yq-sanyi",
+    "dom",
+    "query",
+    "selectors",
+    "events",
+    "animations",
+    "manipulation"
+  ],
+  "author": "YQteam-hq",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "esbuild": "^0.19.0"
+  }
+}

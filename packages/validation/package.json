@@ -1,0 +1,25 @@
+{
+  "name": "@yq-sanyi/validation",
+  "version": "0.1.0",
+  "description": "Advanced form validation helpers for yq-sanyi components",
+  "type": "module",
+  "main": "./dist/validation.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --minify --format=esm --target=es2019 --outfile=dist/validation.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  
+  "keywords": [
+    "web-components",
+    "validation",
+    "forms",
+    "yq-sanyi"
+  ],
+  "author": "YQteam-hq",
+  "license": "Apache-2.0"
+}

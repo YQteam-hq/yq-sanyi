@@ -1,0 +1,26 @@
+{
+  "name": "@yq-sanyi/i18n",
+  "version": "0.1.0",
+  "description": "Internationalization (i18n) support for yq-sanyi components",
+  "type": "module",
+  "main": "./dist/i18n.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --minify --format=esm --target=es2019 --outfile=dist/i18n.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  
+  "keywords": [
+    "web-components",
+    "i18n",
+    "internationalization",
+    "localization",
+    "yq-sanyi"
+  ],
+  "author": "YQteam-hq",
+  "license": "Apache-2.0"
+}

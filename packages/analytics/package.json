@@ -1,0 +1,26 @@
+{
+  "name": "@yq-sanyi/analytics",
+  "version": "0.1.0",
+  "description": "Performance monitoring and analytics utilities for yq-sanyi components",
+  "type": "module",
+  "main": "./dist/analytics.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --minify --format=esm --target=es2019 --outfile=dist/analytics.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  
+  "keywords": [
+    "web-components",
+    "analytics",
+    "performance",
+    "monitoring",
+    "yq-sanyi"
+  ],
+  "author": "YQteam-hq",
+  "license": "Apache-2.0"
+}

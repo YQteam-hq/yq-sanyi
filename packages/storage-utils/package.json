@@ -1,0 +1,26 @@
+{
+  "name": "@yq-sanyi/storage-utils",
+  "version": "0.1.0",
+  "description": "Storage utilities for local storage, session storage, and cache management",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --minify --format=esm --target=es2019 --outfile=dist/index.mjs && esbuild src/index.ts --bundle --minify --format=cjs --target=es2019 --outfile=dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "yq-sanyi",
+    "storage",
+    "cache",
+    "local-storage",
+    "session-storage",
+    "persistence"
+  ],
+  "author": "YQteam-hq",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "esbuild": "^0.19.0"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@yq-sanyi/accessibility",
+  "version": "0.1.0",
+  "description": "Accessibility utilities and ARIA enhancements for yq-sanyi components",
+  "type": "module",
+  "main": "./dist/accessibility.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --minify --format=esm --target=es2019 --outfile=dist/accessibility.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  
+  "keywords": [
+    "web-components",
+    "accessibility",
+    "aria",
+    "wcag",
+    "yq-sanyi"
+  ],
+  "author": "YQteam-hq",
+  "license": "Apache-2.0"
+}
