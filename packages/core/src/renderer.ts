@@ -1047,6 +1047,14 @@ function getThemeVariables(): Record<string, string> {
   return result
 }
 
+function removeAuthoredThemeVariables(defaultTheme: Record<string, string>): void {
+  for (const key of Array.from(themeVariables.keys())) {
+    const isBuiltIn = Object.prototype.hasOwnProperty.call(defaultTheme, key)
+    if (isBuiltIn) continue
+    document.documentElement.style.removeProperty(`--yq-${key}`)
+  }
+}
+
 function resetTheme(): void {
   const defaultTheme = {
     'primary-color': '#3b82f6',
@@ -1056,7 +1064,9 @@ function resetTheme(): void {
     'border-color': '#e5e7eb',
     'shadow-color': 'rgba(0, 0, 0, 0.1)'
   }
-  
+
+  removeAuthoredThemeVariables(defaultTheme)
+
   themeVariables.clear()
   updateTheme(defaultTheme)
 }
