@@ -429,16 +429,20 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
     let currentAttr = ''
     let currentAttrValue: string[] = []
     let inQuote = null
+    let inUnquoted = false
+    const commitAttr = (): void => {
+      handleAttr(node, currentAttr, currentAttrValue.join(''))
+      currentAttr = ''
+      currentAttrValue = []
+      inUnquoted = false
+    }
 
     while (i < html.length) {
       const char = html[i]
       if (inQuote) {
         if (char === inQuote) {
           inQuote = null
-          const value = currentAttrValue.join('')
-          handleAttr(node, currentAttr, value)
-          currentAttr = ''
-          currentAttrValue = []
+          commitAttr()
         } else {
           currentAttrValue.push(char)
         }
@@ -451,6 +455,9 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
             inQuote = html[i]
             currentAttrValue = []
             i++
+          } else {
+            inUnquoted = true
+            currentAttrValue = []
           }
         } else {
           i++
@@ -460,9 +467,11 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
         currentAttrValue = []
         i++
       } else if (char === '>') {
+        if (inUnquoted) commitAttr()
         i++
         break
       } else if (char === '/') {
+        if (inUnquoted && html[i + 1] === '>') commitAttr()
         inSelfClosing = true
         i++
         if (i < html.length && html[i] === '>') {
@@ -470,12 +479,10 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
           break
         }
       } else if (/[ \t\n\r]/.test(char)) {
-        if (currentAttr.length > 0) {
-          const value = currentAttrValue.join('')
-          handleAttr(node, currentAttr, value)
-          currentAttr = ''
-          currentAttrValue = []
-        }
+        if (currentAttr.length > 0) commitAttr()
+        i++
+      } else if (inUnquoted) {
+        currentAttrValue.push(char)
         i++
       } else {
         if (currentAttr.length === 0) {
@@ -488,10 +495,7 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
     }
 
     if (inQuote) error('unclosed attribute quote')
-    if (currentAttr.length > 0) {
-      const value = currentAttrValue.join('')
-      handleAttr(node, currentAttr, value)
-    }
+    if (currentAttr.length > 0) commitAttr()
 
     if (node.list) {
       slots.push({ kind: 'list', nodeId: node.id, itemVar: node.list.itemVar, indexVar: node.list.indexVar, itemsPath: node.list.itemsPath, keyProp: node.list.keyProp })
