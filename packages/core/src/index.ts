@@ -358,8 +358,11 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
       node.list = parseListSpec(value, node.staticAttrs['yq-key'] || null)
       delete node.staticAttrs['yq-key']
     } else if (attr === 'yq-key') {
-      if (!node.list) error('yq-key without yq-for')
-      node.list.keyProp = value
+      if (node.list) {
+        node.list.keyProp = value
+      } else {
+        node.staticAttrs['yq-key'] = value
+      }
     } else if (attr.startsWith('yq-on:')) {
       const eventName = attr.substring('yq-on:'.length)
       if (eventName.length === 0) error('empty event name in yq-on')
@@ -451,6 +454,15 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
             inQuote = html[i]
             currentAttrValue = []
             i++
+          } else {
+            let bare = ''
+            while (i < html.length && !/[ \t\n\r>]/.test(html[i])) {
+              bare += html[i]
+              i++
+            }
+            handleAttr(node, currentAttr, bare)
+            currentAttr = ''
+            currentAttrValue = []
           }
         } else {
           i++
@@ -491,6 +503,11 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
     if (currentAttr.length > 0) {
       const value = currentAttrValue.join('')
       handleAttr(node, currentAttr, value)
+    }
+
+    if (!node.list && Object.prototype.hasOwnProperty.call(node.staticAttrs, 'yq-key')) {
+      delete node.staticAttrs['yq-key']
+      error('yq-key without yq-for')
     }
 
     if (node.list) {
