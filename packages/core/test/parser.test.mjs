@@ -137,10 +137,10 @@ test('script invalid type returns null', () => {
 test('define parses once and caches, multiple instances share one CDO', async () => {
   const { define, lookup } = await import('../dist/core.mjs')
   const definition = { template: '<div>{{ x }}</div>', style: 'div { color: red }', script: null }
-  define('test', definition)
+  define('test-comp', definition)
 
-  const result1 = lookup('test')
-  const result2 = lookup('test')
+  const result1 = lookup('test-comp')
+  const result2 = lookup('test-comp')
 
   assert.ok(result1 !== undefined)
   assert.ok(result2 !== undefined)
