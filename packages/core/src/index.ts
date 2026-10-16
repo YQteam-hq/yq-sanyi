@@ -54,12 +54,12 @@ export interface State<T> {
 }
 
 export interface Derived<T> extends State<T> {
-  dependencies: State<any>[]
+  dependencies: (State<any> | Signal<any>)[]
 }
 
 export interface Effect {
   fn: () => void
-  dependencies: State<any>[]
+  dependencies: (State<any> | Signal<any>)[]
   cleanup?: () => void
   dirty?: boolean
 }
@@ -764,7 +764,7 @@ function state<T>(initialValue: T, componentName?: string): State<T> {
 
 function derived<T>(computeFn: () => T): Derived<T> {
   let cachedValue: T | undefined
-  const dependencies: State<any>[] = []
+  const dependencies: (State<any> | Signal<any>)[] = []
   const signalSubs: Array<() => void> = []
   const tracker = { signals: new Set<any>() }
   const derivedObj: Derived<T> & { dirty: boolean; computing: boolean } = {
@@ -848,7 +848,7 @@ function effectScope(): EffectScope {
 }
 
 function effect(fn: () => void | (() => void), componentName?: string): () => void {
-  const dependencies: State<any>[] = []
+  const dependencies: (State<any> | Signal<any>)[] = []
   let cleanup: (() => void) | null = null
   const effectObj: Effect = { fn: () => {}, dependencies, dirty: false }
   let prevStart = 0
@@ -896,11 +896,18 @@ function resetReactiveState(): void {
   flushScheduled = false
 }
 
+function dependencyCurrentValue(dep: State<any> | Signal<any>): any {
+  if (typeof (dep as Signal<any>).get === 'function') {
+    return (dep as Signal<any>).get()
+  }
+  return (dep as State<any>).value
+}
+
 function dumpReactiveState(): { states: any[]; effects: any[] } {
   const states: any[] = []
   const effects: any[] = []
   for (const effect of allEffects) {
-    effects.push({ dependencies: effect.dependencies.map(d => d.value) })
+    effects.push({ dependencies: effect.dependencies.map(dependencyCurrentValue) })
     for (const dep of effect.dependencies) {
       if (!states.includes(dep)) {
         states.push(dep)
