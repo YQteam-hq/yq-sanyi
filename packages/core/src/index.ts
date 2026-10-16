@@ -60,6 +60,7 @@ export interface Effect {
   dependencies: State<any>[]
   cleanup?: () => void
   dirty?: boolean
+  children?: Effect[]
   dispose?: () => void
 }
 
@@ -828,44 +829,48 @@ function effectScope(): EffectScope {
   }
 }
 
-function effect(fn: () => void | (() => void), componentName?: string): () => void {
-  const dependencies: State<any>[] = []
-  let cleanup: (() => void) | null = null
-  let children: Effect[] = []
-  const effectObj: Effect = { fn: () => {}, dependencies, dirty: false }
-  function releaseChildren(): void {
-    for (const child of children) {
-      if (typeof child.dispose === 'function') child.dispose()
-    }
-    children = []
+function disposeEffectChildren(effectObj: Effect): void {
+  const children = effectObj.children
+  if (!children) return
+  for (const child of children) {
+    if (typeof child.dispose === 'function') child.dispose()
   }
-  function wrappedFn(): void {
-    releaseChildren()
+  children.length = 0
+}
+
+function disposeEffect(effectObj: Effect): void {
+  const idx = allEffects.indexOf(effectObj)
+  if (idx > -1) allEffects.splice(idx, 1)
+  disposeEffectChildren(effectObj)
+  effectObj.dependencies.length = 0
+  const cleanup = effectObj.cleanup
+  if (cleanup) {
+    effectObj.cleanup = undefined
+    cleanup()
+  }
+}
+
+function effect(fn: () => void | (() => void), componentName?: string): () => void {
+  const effectObj: Effect = { fn: () => {}, dependencies: [], dirty: false, children: [] }
+  effectObj.fn = (): void => {
+    disposeEffectChildren(effectObj)
     const mark = allEffects.length
     effectStack.push(effectObj)
     try {
       const result = fn()
       if (typeof result === 'function') {
-        cleanup = result
+        effectObj.cleanup = result
       }
     } finally {
       effectStack.pop()
     }
-    children = allEffects.slice(mark)
-  }
-  effectObj.fn = wrappedFn
-  effectObj.dispose = (): void => {
-    const idx = allEffects.indexOf(effectObj)
-    if (idx > -1) allEffects.splice(idx, 1)
-    releaseChildren()
-    dependencies.length = 0
-    if (cleanup) {
-      cleanup()
-      cleanup = null
+    if (effectObj.children) {
+      effectObj.children.push(...allEffects.slice(mark))
     }
   }
+  effectObj.dispose = (): void => disposeEffect(effectObj)
   allEffects.push(effectObj)
-  wrappedFn()
+  effectObj.fn()
   return effectObj.dispose!
 }
 

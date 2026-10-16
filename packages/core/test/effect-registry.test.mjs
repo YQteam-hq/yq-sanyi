@@ -68,6 +68,23 @@ test('disposing an effect removes it from the registry', async () => {
   assert.equal(dumpReactiveState().effects.length, 0)
 })
 
+test('disposing twice runs the cleanup once', async () => {
+  resetReactiveState()
+  const count = state(0)
+  let cleanups = 0
+  const stop = effect(() => {
+    count.value
+    return () => {
+      cleanups++
+    }
+  })
+  stop()
+  stop()
+  count.value = 1
+  await flush()
+  assert.equal(cleanups, 1)
+})
+
 test('an effect re-run releases the effects created on the previous run', async () => {
   resetReactiveState()
   const toggle = state(true)
