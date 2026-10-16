@@ -164,9 +164,28 @@ export async function runDev(options) {
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
   server.on('error', (error) => {
+    if (error && error.code === 'EADDRINUSE') {
+      warn('port ' + port + ' on ' + host + ' is already in use, pass --port <number> to pick another one');
+      return;
+    }
     warn(error.message);
   });
-  await new Promise((done) => server.listen(port, host, done));
+  const listening = await new Promise((done) => {
+    server.once('error', () => {
+      done(false);
+    });
+    server.listen(port, host, () => {
+      done(true);
+    });
+  });
+  if (!listening) {
+    watcher.close();
+    for (const client of clients) {
+      client.end();
+    }
+    clients.clear();
+    return 1;
+  }
   const address = server.address();
   const bound = address && typeof address === 'object' ? address.port : port;
   line('yq dev: serving ' + root + ' at http://' + host + ':' + bound);

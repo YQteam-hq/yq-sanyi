@@ -2,7 +2,7 @@ import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { request } from 'node:http';
+import { createServer, request } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -304,6 +304,32 @@ describe('yq dev --port validation', () => {
     const result = runFailure(['dev', '--port', '70000'], dir);
     assert.equal(result.status, 1);
     assert.ok(result.stderr.includes('invalid --port'), result.stderr);
+  });
+
+  it('exits non-zero when the port is already in use', async () => {
+    const dir = tempDir('dev-port-busy');
+    writeFileSync(join(dir, 'index.html'), '<!DOCTYPE html>\n<html><body><h1>busy</h1></body></html>\n');
+    const blocker = createServer();
+    await new Promise((settle) => blocker.listen(0, '127.0.0.1', settle));
+    const busy = blocker.address().port;
+    const child = spawn(process.execPath, [bin, 'dev', '--port', String(busy)], { cwd: dir, stdio: ['ignore', 'pipe', 'pipe'] });
+    let stderr = '';
+    child.stderr.setEncoding('utf8');
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk;
+    });
+    const status = await new Promise((settle, fail) => {
+      const timer = setTimeout(() => {
+        fail(new Error('yq dev hung instead of exiting, stderr: ' + stderr));
+      }, 20000);
+      child.once('exit', (code) => {
+        clearTimeout(timer);
+        settle(code);
+      });
+    });
+    blocker.close();
+    assert.equal(status, 1);
+    assert.ok(stderr.includes('already in use'), stderr);
   });
 });
 
