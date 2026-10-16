@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { parseHTML } from 'linkedom';
 
 function buildShell() {
@@ -35,4 +36,4 @@ export function renderFragmentToString(definition, props) {
   return renderToString(name, definition, props);
 }
 
-export const version = '0.4.0-node-skeleton';
+export const version = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;

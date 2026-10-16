@@ -1,6 +1,4 @@
-export const version = '0.4.1'
-
-
+import { version } from './version.js'
 import { ErrorBoundary } from './error-boundary.js'
 import { onError, _resetErrorHandlers } from './error-bus.js'
 import { registerElement } from './elements.js'
@@ -1033,6 +1031,7 @@ function getStateSnapshot(instance: ComponentInstance): Record<string, any> {
 }
 
 export { 
+  version,
   generateScopeId,
   define,
   defineAlias,
