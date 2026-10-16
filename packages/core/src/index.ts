@@ -60,6 +60,7 @@ export interface Effect {
   dependencies: State<any>[]
   cleanup?: () => void
   dirty?: boolean
+  dispose?: () => void
 }
 
 export interface RenderContext {
@@ -830,13 +831,17 @@ function effectScope(): EffectScope {
 function effect(fn: () => void | (() => void), componentName?: string): () => void {
   const dependencies: State<any>[] = []
   let cleanup: (() => void) | null = null
+  let children: Effect[] = []
   const effectObj: Effect = { fn: () => {}, dependencies, dirty: false }
-  let prevStart = 0
-  let prevEnd = 0
-  function wrappedFn(): void {
-    while (allEffects.length > prevStart) {
-      allEffects.pop()
+  function releaseChildren(): void {
+    for (const child of children) {
+      if (typeof child.dispose === 'function') child.dispose()
     }
+    children = []
+  }
+  function wrappedFn(): void {
+    releaseChildren()
+    const mark = allEffects.length
     effectStack.push(effectObj)
     try {
       const result = fn()
@@ -846,22 +851,22 @@ function effect(fn: () => void | (() => void), componentName?: string): () => vo
     } finally {
       effectStack.pop()
     }
-    prevStart = prevEnd
-    prevEnd = allEffects.length
+    children = allEffects.slice(mark)
   }
   effectObj.fn = wrappedFn
-  allEffects.push(effectObj)
-  prevStart = allEffects.length
-  prevEnd = allEffects.length
-  wrappedFn()
-  return () => {
+  effectObj.dispose = (): void => {
     const idx = allEffects.indexOf(effectObj)
     if (idx > -1) allEffects.splice(idx, 1)
+    releaseChildren()
+    dependencies.length = 0
     if (cleanup) {
       cleanup()
       cleanup = null
     }
   }
+  allEffects.push(effectObj)
+  wrappedFn()
+  return effectObj.dispose!
 }
 
 function resetReactiveState(): void {
