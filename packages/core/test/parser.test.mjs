@@ -447,3 +447,43 @@ test('correct handling of complex text mixing with multiple expressions', () => 
     { path: ['discount'] }
   ])
 })
+
+test('parseTemplate reads an attribute value written without quotes', () => {
+  const result = parseTemplate('x', '<div class=box></div>')
+  assert.strictEqual(result.root.tag, 'div')
+  assert.deepEqual(result.root.staticAttrs, { class: 'box' })
+})
+
+test('parseTemplate reads several unquoted attribute values', () => {
+  const result = parseTemplate('x', '<input type=text id=name placeholder=Name>')
+  assert.deepEqual(result.root.staticAttrs, { type: 'text', id: 'name', placeholder: 'Name' })
+})
+
+test('parseTemplate reads unquoted values next to quoted ones', () => {
+  const result = parseTemplate('x', '<img src="a.png" width=32 height="32">')
+  assert.deepEqual(result.root.staticAttrs, { src: 'a.png', width: '32', height: '32' })
+})
+
+test('parseTemplate stops an unquoted value at the self closing slash', () => {
+  const br = parseTemplate('x', '<br class=clear/>')
+  assert.strictEqual(br.root.tag, 'br')
+  assert.deepEqual(br.root.staticAttrs, { class: 'clear' })
+  const img = parseTemplate('x', '<img src=p.png/>')
+  assert.deepEqual(img.root.staticAttrs, { src: 'p.png' })
+})
+
+test('parseTemplate keeps a boolean attribute with no value', () => {
+  const result = parseTemplate('x', '<input type=checkbox disabled>')
+  assert.deepEqual(result.root.staticAttrs, { type: 'checkbox', disabled: '' })
+})
+
+test('parseTemplate still reads a quoted value holding spaces', () => {
+  const result = parseTemplate('x', '<p title="hello there"></p>')
+  assert.deepEqual(result.root.staticAttrs, { title: 'hello there' })
+})
+
+test('parseTemplate binds an attribute written without quotes', () => {
+  const result = parseTemplate('x', '<span id="{{key}}"></span>')
+  assert.deepEqual(result.root.staticAttrs, {})
+  assert.deepEqual(result.root.dynAttrs, { id: [{ path: ['key'] }] })
+})
