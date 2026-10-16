@@ -451,12 +451,12 @@ yq.scoper.updateTheme({
 
 ## 响应式原语
 
-组件自己管理状态。当需要在组件之外共享状态时，核心同样导出带依赖追踪的 `state`、`derived`、`effect` 原语：
+组件自己管理状态。当需要在组件之外共享状态时，核心同样导出带依赖追踪的 `signal`、`state`、`derived`、`effect` 原语：
 
 ```html
 <script>
-  const count = yq.state(0)
-  const doubled = yq.derived(function () { return count.value * 2 })
+  const count = yq.signal(0)
+  const doubled = yq.derived(function () { return count.get() * 2 })
 
   yq.effect(function () {
     document.getElementById('double').textContent = doubled.value
@@ -468,7 +468,7 @@ yq.scoper.updateTheme({
       return {
         state: {},
         bump: function () {
-          count.value = count.value + 1
+          count.set(count.get() + 1)
         }
       }
     }
@@ -476,7 +476,7 @@ yq.scoper.updateTheme({
 </script>
 ```
 
-`state(x)` 返回一个盒子，通过 `.value` 读写。`derived` 只在依赖变化时重算。`effect` 在依赖变化时重跑，且可返回清理函数：下一次运行前与 effect 被释放时都会先执行清理。
+`signal(x)` 是最底层的原语：它只持有单个响应式值，用 `.get()` 读取、`.set()` 写入，并且和 `state` 一样会被 `derived` 与 `effect` 追踪。`state(x)` 返回一个盒子，通过 `.value` 读写。`derived` 只在依赖变化时重算。`effect` 在依赖变化时重跑，且可返回清理函数：下一次运行前与 effect 被释放时都会先执行清理。
 
 ## 生命周期与清理
 
@@ -496,8 +496,6 @@ yq.scoper.updateTheme({
   panel.remove()
 </script>
 ```
-
-`panel.remove()` 会走该实例的卸载路径——无需额外代码，也没有按使用处的清理工作。用命令式 API 创建的组件，可以把 effect 清理注册到实例上，卸载时自动执行（见下一节）。
 
 `panel.remove()` 会走该实例的卸载路径——无需额外代码，也没有按使用处的清理工作。用命令式 API 创建的组件，可以把 effect 清理注册到实例上，卸载时自动执行（见下一节）。
 
