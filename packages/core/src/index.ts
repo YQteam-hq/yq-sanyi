@@ -817,9 +817,14 @@ function effectScope(): EffectScope {
   return {
     run<T>(fn: () => T): T | undefined {
       if (stopped) return undefined
-      return fn()
+      const result = fn()
+      if (typeof result === 'function') {
+        cleanups.push(result as unknown as () => void)
+      }
+      return result
     },
     stop(): void {
+      if (stopped) return
       stopped = true
       for (const c of cleanups) c()
       cleanups.length = 0
