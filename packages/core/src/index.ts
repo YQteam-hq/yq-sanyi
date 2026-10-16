@@ -343,6 +343,18 @@ function expandFragments(html: string): string {
   return curr
 }
 
+function endsUnquotedAttributeValue(char: string): boolean {
+  return char === ' ' || char === '\t' || char === '\n' || char === '\r' || char === '>'
+}
+
+function readUnquotedAttributeValue(html: string, start: number): { value: string; end: number } {
+  let end = start
+  while (end < html.length && !endsUnquotedAttributeValue(html[end])) {
+    end++
+  }
+  return { value: html.substring(start, end), end }
+}
+
 function parseTemplate(name: string, template: string): { root: SNode; nodes: SNode[]; nodeIndex: Map<number, SNode>; slots: Slot[] } {
   template = expandFragments(template)
   const slots: Slot[] = []
@@ -452,14 +464,11 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
             currentAttrValue = []
             i++
           } else {
-            currentAttrValue = []
-            while (i < html.length && !/[ \t\n\r>]/.test(html[i])) {
-              currentAttrValue.push(html[i])
-              i++
-            }
-            handleAttr(node, currentAttr, currentAttrValue.join(''))
+            const unquoted = readUnquotedAttributeValue(html, i)
+            handleAttr(node, currentAttr, unquoted.value)
             currentAttr = ''
             currentAttrValue = []
+            i = unquoted.end
           }
         } else {
           i++

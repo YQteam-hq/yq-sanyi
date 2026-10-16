@@ -61,6 +61,23 @@ test('an unquoted yq-on value registers the handler', () => {
   assert.equal(event.handler, 'inc')
 })
 
+test('an unquoted value keeps the characters that HTML allows in one', () => {
+  assert.equal(root('<div data-eq=a=b>x</div>').staticAttrs['data-eq'], 'a=b')
+  assert.equal(root('<img src=/img/logo.png>').staticAttrs.src, '/img/logo.png')
+  assert.equal(root('<div data-json={"a":1}>x</div>').staticAttrs['data-json'], '{"a":1}')
+})
+
+test('an unquoted value decodes the entities it contains', () => {
+  const node = root('<div title=a&amp;b>x</div>')
+  assert.deepEqual(node.dynAttrs.title, [{ static: 'a&b' }])
+})
+
+test('an unquoted value next to a single quoted one keeps both', () => {
+  const node = root("<div a='1' b=2>x</div>")
+  assert.equal(node.staticAttrs.a, '1')
+  assert.equal(node.staticAttrs.b, '2')
+})
+
 test('an unquoted yq-for value still builds the list spec', () => {
   const parsed = parseTemplate('probe', '<ul><li yq-for="item in items">{{ item }}</li></ul>')
   const list = parsed.slots.find((slot) => slot.kind === 'list')
