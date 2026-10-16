@@ -119,6 +119,18 @@ export async function runDev(options) {
   }
   const entry = optionText(options, 'entry', typeof config.entry === 'string' ? config.entry : 'index.html');
   const host = optionText(options, 'host', '127.0.0.1');
+  const rawPort = options.port;
+  if (rawPort !== undefined && rawPort !== true) {
+    const portNum = Number(rawPort);
+    if (!Number.isInteger(portNum) || portNum < 0 || portNum > 65535) {
+      warn(
+        'invalid --port value ' +
+          JSON.stringify(rawPort) +
+          ': port must be an integer between 0 and 65535 (0 = random free port)'
+      );
+      return 1;
+    }
+  }
   const port = optionNumber(options, 'port', typeof config.port === 'number' ? config.port : 8080);
   if (!existsSync(join(root, entry))) {
     warn('entry not found, the root url will answer 404: ' + entry);

@@ -291,6 +291,22 @@ describe('yq dev', () => {
   });
 });
 
+describe('yq dev --port validation', () => {
+  it('rejects a non-numeric port and exits non-zero', () => {
+    const dir = tempDir('dev-port-bad');
+    const result = runFailure(['dev', '--port', 'abc'], dir);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes('invalid --port'), result.stderr);
+  });
+
+  it('rejects an out-of-range port and exits non-zero', () => {
+    const dir = tempDir('dev-port-range');
+    const result = runFailure(['dev', '--port', '70000'], dir);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes('invalid --port'), result.stderr);
+  });
+});
+
 describe('scaffolded project', () => {
   it('registers its component and reacts to a click', async () => {
     const dir = tempDir('runtime');
