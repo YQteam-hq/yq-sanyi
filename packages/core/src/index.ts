@@ -451,6 +451,15 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
             inQuote = html[i]
             currentAttrValue = []
             i++
+          } else {
+            currentAttrValue = []
+            while (i < html.length && !/[ \t\n\r>]/.test(html[i])) {
+              currentAttrValue.push(html[i])
+              i++
+            }
+            handleAttr(node, currentAttr, currentAttrValue.join(''))
+            currentAttr = ''
+            currentAttrValue = []
           }
         } else {
           i++
