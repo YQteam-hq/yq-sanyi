@@ -709,16 +709,31 @@ export interface Signal<T> {
 function signal<T>(initial: T): Signal<T> {
   let value = initial
   const subscribers = new Set<() => void>()
+  const dep: State<T> = {
+    get value(): T {
+      trackState(dep)
+      return value
+    },
+    set value(next: T) {
+      write(next)
+    },
+    dispose(): void {
+      subscribers.clear()
+    }
+  }
+  function write(next: T): void {
+    if (Object.is(next, value)) return
+    value = next
+    for (const s of subscribers) s()
+    triggerState(dep)
+  }
   const sig = {
     get(): T {
       if (activeSignalTracker) activeSignalTracker.signals.add(sig)
-      return value
+      return dep.value
     },
     set(next: T): void {
-      if (!Object.is(next, value)) {
-        value = next
-        for (const s of subscribers) s()
-      }
+      write(next)
     },
     peek(): T { return value },
     subscribe(fn: () => void): () => void {
