@@ -811,16 +811,23 @@ function effectPre(fn: () => void | (() => void)): () => void {
   }
 }
 
+function isCleanup(value: unknown): value is () => void {
+  return typeof value === 'function'
+}
+
 function effectScope(): EffectScope {
   let stopped = false
   const cleanups: Array<() => void> = []
+  const collect = (value: unknown): void => {
+    if (isCleanup(value)) {
+      cleanups.push(value)
+    }
+  }
   return {
     run<T>(fn: () => T): T | undefined {
       if (stopped) return undefined
       const result = fn()
-      if (typeof result === 'function') {
-        cleanups.push(result as unknown as () => void)
-      }
+      collect(result)
       return result
     },
     stop(): void {

@@ -79,6 +79,23 @@ test('run returns the value produced by the callback', () => {
   scope.stop()
 })
 
+test('a callback that throws still leaves the earlier cleanups releasable', () => {
+  resetReactiveState()
+  let cleaned = 0
+  const scope = effectScope()
+  scope.run(() => () => {
+    cleaned++
+  })
+  assert.throws(() => {
+    scope.run(() => {
+      throw new Error('callback failed')
+    })
+  }, /callback failed/)
+  assert.equal(cleaned, 0, 'the error must propagate and must not release the scope early')
+  scope.stop()
+  assert.equal(cleaned, 1, 'cleanups collected before the failure are still released')
+})
+
 test('independent scopes do not share their cleanups', () => {
   resetReactiveState()
   let firstCleaned = 0
