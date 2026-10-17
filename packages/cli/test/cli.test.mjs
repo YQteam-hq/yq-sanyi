@@ -287,6 +287,12 @@ describe('yq dev', () => {
     assert.ok(res.type.includes('text/plain'), res.type);
   });
 
+  it('answers 400 for a truncated escape sequence', async () => {
+    const res = await fetchRaw(port, '/%E0%A4%A');
+    assert.equal(res.status, 400);
+    assert.ok(res.type.includes('text/plain'), res.type);
+  });
+
   it('keeps serving after a malformed percent-encoded path', async () => {
     const bad = await fetchRaw(port, '/%');
     assert.equal(bad.status, 400);
