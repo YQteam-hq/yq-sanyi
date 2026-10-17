@@ -105,6 +105,17 @@ function makeHandler(root, entry, clients) {
   };
 }
 
+function listen(server, port, host) {
+  return new Promise((settle) => {
+    server.once('error', () => {
+      settle(false);
+    });
+    server.listen(port, host, () => {
+      settle(true);
+    });
+  });
+}
+
 export async function runDev(options) {
   if (options.help) {
     line(DEV_USAGE);
@@ -170,14 +181,7 @@ export async function runDev(options) {
     }
     warn(error.message);
   });
-  const listening = await new Promise((done) => {
-    server.once('error', () => {
-      done(false);
-    });
-    server.listen(port, host, () => {
-      done(true);
-    });
-  });
+  const listening = await listen(server, port, host);
   if (!listening) {
     watcher.close();
     for (const client of clients) {
