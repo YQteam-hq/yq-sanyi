@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline/promises';
 import { line, warn } from './log.mjs';
-import { optionText, collectUnknownOptions } from './args.mjs';
+import { optionText, ensureKnownOptions } from './args.mjs';
 
 const INIT_OPTIONS = new Set(['help', 'version', 'quiet', 'dir', 'yes', 'no-example']);
 
@@ -98,12 +98,7 @@ export async function runInit(options) {
     line(INIT_USAGE);
     return 0;
   }
-  const unknownOptions = collectUnknownOptions(options, INIT_OPTIONS);
-  if (unknownOptions.length > 0) {
-    for (const name of unknownOptions) {
-      warn('unknown option --' + name);
-    }
-    line(INIT_USAGE);
+  if (!ensureKnownOptions(options, INIT_OPTIONS, INIT_USAGE)) {
     return 1;
   }
   let name = options._[1];

@@ -1,3 +1,5 @@
+import { line, warn } from './log.mjs';
+
 const BOOLEAN = new Set(['help', 'version', 'yes', 'no-example', 'quiet']);
 const ALIAS = { h: 'help', v: 'version', y: 'yes' };
 
@@ -75,4 +77,16 @@ export function collectUnknownOptions(options, known) {
     unknown.push(key);
   }
   return unknown;
+}
+
+export function ensureKnownOptions(options, known, usage) {
+  const unknown = collectUnknownOptions(options, known);
+  if (unknown.length === 0) {
+    return true;
+  }
+  for (const name of unknown) {
+    warn(`unknown option --${name}`);
+  }
+  line(usage);
+  return false;
 }

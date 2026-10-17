@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { line, warn } from './log.mjs';
-import { optionNumber, optionText, collectUnknownOptions } from './args.mjs';
+import { optionNumber, optionText, ensureKnownOptions } from './args.mjs';
 
 const DEV_OPTIONS = new Set(['help', 'version', 'quiet', 'dir', 'port', 'host', 'entry']);
 
@@ -123,12 +123,7 @@ export async function runDev(options) {
     line(DEV_USAGE);
     return 0;
   }
-  const unknownOptions = collectUnknownOptions(options, DEV_OPTIONS);
-  if (unknownOptions.length > 0) {
-    for (const name of unknownOptions) {
-      warn('unknown option --' + name);
-    }
-    line(DEV_USAGE);
+  if (!ensureKnownOptions(options, DEV_OPTIONS, DEV_USAGE)) {
     return 1;
   }
   const cwd = process.cwd();
