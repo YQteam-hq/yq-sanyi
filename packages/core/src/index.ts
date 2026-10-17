@@ -815,6 +815,23 @@ function isCleanup(value: unknown): value is () => void {
   return typeof value === 'function'
 }
 
+function runCleanups(cleanups: Array<() => void>): void {
+  let failure: unknown = null
+  for (const cleanup of cleanups) {
+    try {
+      cleanup()
+    } catch (error) {
+      if (failure === null) {
+        failure = error
+      }
+    }
+  }
+  cleanups.length = 0
+  if (failure !== null) {
+    throw failure
+  }
+}
+
 function effectScope(): EffectScope {
   let stopped = false
   const cleanups: Array<() => void> = []
@@ -833,8 +850,7 @@ function effectScope(): EffectScope {
     stop(): void {
       if (stopped) return
       stopped = true
-      for (const c of cleanups) c()
-      cleanups.length = 0
+      runCleanups(cleanups)
     }
   }
 }

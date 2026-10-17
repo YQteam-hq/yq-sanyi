@@ -96,6 +96,22 @@ test('a callback that throws still leaves the earlier cleanups releasable', () =
   assert.equal(cleaned, 1, 'cleanups collected before the failure are still released')
 })
 
+test('a cleanup that throws does not strand the cleanups after it', () => {
+  resetReactiveState()
+  const order = []
+  const scope = effectScope()
+  scope.run(() => () => {
+    order.push('first')
+    throw new Error('cleanup failed')
+  })
+  scope.run(() => () => {
+    order.push('second')
+  })
+  assert.throws(() => scope.stop(), /cleanup failed/)
+  assert.deepEqual(order, ['first', 'second'], 'every cleanup must run even when one throws')
+  assert.equal(scope.run(() => 'ignored'), undefined)
+})
+
 test('independent scopes do not share their cleanups', () => {
   resetReactiveState()
   let firstCleaned = 0
