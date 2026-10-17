@@ -77,7 +77,8 @@ Two behaviours matter while editing:
   for 40 ms and then pushes one reload event to every open stream.
 
 Requests that resolve outside the served directory are answered with `403`, so a
-path such as `/..%2f..%2fpackage.json` cannot read files above the root.
+path such as `/..%2f..%2fpackage.json` cannot read files above the root. A path
+with a malformed percent escape, for example `/%`, is answered with `400`.
 
 ## Tests
 

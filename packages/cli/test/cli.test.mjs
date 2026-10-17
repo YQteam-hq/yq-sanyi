@@ -281,6 +281,20 @@ describe('yq dev', () => {
     assert.equal(res.status, 403);
   });
 
+  it('answers 400 for a malformed percent-encoded path', async () => {
+    const res = await fetchRaw(port, '/%');
+    assert.equal(res.status, 400);
+    assert.ok(res.type.includes('text/plain'), res.type);
+  });
+
+  it('keeps serving after a malformed percent-encoded path', async () => {
+    const bad = await fetchRaw(port, '/%');
+    assert.equal(bad.status, 400);
+    const res = await fetchRaw(port, '/style.css');
+    assert.equal(res.status, 200);
+    assert.ok(res.body.includes('color: #111'), res.body);
+  });
+
   it('pushes a reload event after a watched file changes', async () => {
     const events = await readEventStream(port, '/__yq/reload', () => {
       setTimeout(() => {
