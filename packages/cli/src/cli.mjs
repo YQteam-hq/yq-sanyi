@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { parseArgs } from './args.mjs';
-import { line, warn } from './log.mjs';
+import { line, warn, setQuiet } from './log.mjs';
 import { runInit } from './init.mjs';
 import { runDev } from './dev.mjs';
 
@@ -18,12 +18,14 @@ const usage = [
   'options:',
   '  -h, --help      show this help',
   '  -v, --version   print the cli version',
+  '  --quiet         suppress the warning lines',
   '',
   'run "yq <command> --help" for the options of a command'
 ].join('\n');
 
 export async function main(argv) {
   const options = parseArgs(argv);
+  setQuiet(options.quiet === true);
   const command = options._[0];
   if (options.version) {
     line(manifest.version);

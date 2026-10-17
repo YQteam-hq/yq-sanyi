@@ -12,6 +12,11 @@ Node.js built-ins and reads the runtime bundle from the workspace.
 | `yq dev` | Serve a directory and reload the browser on change |
 | `yq --version` | Print the cli version |
 | `yq --help` | Print the command list |
+| `yq --quiet` | Suppress the `yq: ...` warning lines |
+
+`--quiet` is accepted by every command. It silences the warning lines on stderr
+only: exit codes and the normal output on stdout are unchanged, so a script that
+checks the status keeps working while an interactive run stays quiet.
 
 ## yq init
 

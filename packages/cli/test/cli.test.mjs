@@ -377,6 +377,13 @@ describe('yq dev --port validation', () => {
     assert.ok(result.stderr.includes('invalid --port'), result.stderr);
   });
 
+  it('silences the port warning with --quiet', () => {
+    const dir = tempDir('dev-port-quiet');
+    const result = runFailure(['dev', '--port', 'abc', '--quiet'], dir);
+    assert.equal(result.status, 1);
+    assert.equal(result.stderr, '');
+  });
+
   it('exits non-zero when the port is already in use', async () => {
     const dir = tempDir('dev-port-busy');
     writeFileSync(join(dir, 'index.html'), '<!DOCTYPE html>\n<html><body><h1>busy</h1></body></html>\n');
@@ -429,5 +436,36 @@ describe('scaffolded project', () => {
     await flush();
     assert.equal(counter.textContent, '0');
     host.disconnectedCallback();
+  });
+});
+
+describe('yq cli --quiet', () => {
+  it('keeps the normal output with --quiet', () => {
+    const dir = tempDir('init-quiet-ok');
+    const out = runIn(['init', 'quiet-app', '--yes', '--quiet'], dir);
+    assert.ok(out.includes('yq init: created'), out);
+    assert.ok(existsSync(join(dir, 'quiet-app', 'index.html')));
+  });
+
+  it('suppresses the warning for a missing name with --quiet', () => {
+    const result = runFailure(['init', '--yes', '--quiet'], tempDir('init-quiet'));
+    assert.equal(result.status, 1);
+    assert.equal(result.stderr, '');
+  });
+
+  it('documents --quiet in the usage', () => {
+    const out = run(['--help']);
+    assert.ok(out.includes('--quiet'), out);
+  });
+
+  it('suppresses the unknown command warning with --quiet', () => {
+    const result = runFailure(['--quiet', 'nope']);
+    assert.equal(result.status, 1);
+    assert.equal(result.stderr, '');
+    assert.ok(result.stdout.includes('usage: yq <command>'), result.stdout);
+  });
+
+  it('still prints the version with --quiet', () => {
+    assert.equal(run(['--quiet', '--version']).trim(), version);
   });
 });
