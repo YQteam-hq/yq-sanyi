@@ -863,9 +863,8 @@ function disposeEffect(effectObj: Effect): void {
   }
 }
 
-function effect(fn: () => void | (() => void), componentName?: string): () => void {
-  const effectObj: Effect = { fn: () => {}, dependencies: [], dirty: false, children: [] }
-  effectObj.fn = (): void => {
+function createEffectRunner(effectObj: Effect, fn: () => void | (() => void)): () => void {
+  return (): void => {
     disposeEffectChildren(effectObj)
     const mark = allEffects.length
     effectStack.push(effectObj)
@@ -881,6 +880,11 @@ function effect(fn: () => void | (() => void), componentName?: string): () => vo
       effectObj.children.push(...allEffects.slice(mark))
     }
   }
+}
+
+function effect(fn: () => void | (() => void), componentName?: string): () => void {
+  const effectObj: Effect = { fn: () => {}, dependencies: [], dirty: false, children: [] }
+  effectObj.fn = createEffectRunner(effectObj, fn)
   effectObj.dispose = (): void => disposeEffect(effectObj)
   allEffects.push(effectObj)
   effectObj.fn()
