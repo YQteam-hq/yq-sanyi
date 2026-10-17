@@ -321,8 +321,15 @@ function fillTextSlot(node: Element, slot: Extract<Slot, { kind: 'text' }>, cont
 
 function fillAttrSlot(node: Element, slot: Extract<Slot, { kind: 'attr' }>, context: RenderContext): void {
   const value = slot.path ? resolvePath(context.state, slot.path) : undefined
-  if (value != null && !(slot.attr.startsWith('aria-') && value === '')) {
-    node.setAttribute(slot.attr, String(value))
+  if (value == null || (slot.attr.startsWith('aria-') && value === '')) {
+    if (node.getAttribute(slot.attr) !== null) {
+      node.removeAttribute(slot.attr)
+    }
+    return
+  }
+  const next = String(value)
+  if (node.getAttribute(slot.attr) !== next) {
+    node.setAttribute(slot.attr, next)
   }
 }
 
