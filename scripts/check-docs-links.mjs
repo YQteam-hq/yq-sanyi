@@ -1,15 +1,29 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 
-const DOCS = [
-  'README.md',
-  'CONTRIBUTING.md',
-  'docs/tutorial.md',
-  'docs/i18n/zh-CN/tutorial.md'
-]
+const SKIP_DIRS = new Set(['node_modules', '.git', 'dist'])
+
+function listMarkdown(dir) {
+  const out = []
+  for (const name of readdirSync(dir)) {
+    const abs = join(dir, name)
+    if (statSync(abs).isDirectory()) {
+      if (SKIP_DIRS.has(name)) continue
+      for (const nested of listMarkdown(abs)) out.push(name + '/' + nested)
+      continue
+    }
+    if (name.endsWith('.md')) out.push(name)
+  }
+  return out
+}
+
+const DOCS = readdirSync(root)
+  .filter((name) => name.endsWith('.md'))
+  .concat(listMarkdown(join(root, 'docs')).map((rel) => 'docs/' + rel))
+  .sort()
 
 const LINK = /\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g
 const EXTERNAL = /^([a-z][a-z0-9+.-]*:|\/\/|#)/i
@@ -62,5 +76,5 @@ if (problems.length > 0) {
   }
   process.exitCode = 1
 } else {
-  write('check-docs-links: ok - every relative link in the user-facing docs resolves')
+  write('check-docs-links: ok - every relative link in the ' + DOCS.length + ' user-facing docs resolves')
 }

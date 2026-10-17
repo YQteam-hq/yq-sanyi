@@ -84,7 +84,7 @@ npm run build
 
 页面上的每个 `<yq-counter>` 都是一个可用的计数器。在 module 脚本里可用 `./packages/core/dist/core.mjs` 获得同一套 API；另有命令式 API（`createComponent`、`mountComponent` 等）供编程式使用。
 
-可运行的完整示例见 [examples/full-demo.html](./examples/full-demo.html)。
+可运行的完整示例见 [examples/full-demo.html](../../../examples/full-demo.html)。
 
 ## 组件标签命名
 
@@ -134,12 +134,12 @@ ESM 入口为 `packages/core/dist/core.mjs`；全局构建为 `packages/core/dis
 
 | 示例 | 内容 |
 | --- | --- |
-| [basic.html](./examples/basic.html) | 最小声明式组件，单条 script 引入 |
-| [full-demo.html](./examples/full-demo.html) | 声明式标签、事件、列表与状态同页展示 |
-| [parse-demo.html](./examples/parse-demo.html) | 模板解析过程演示 |
-| [reactive-demo.html](./examples/reactive-demo.html) | `state` / `derived` / `effect` 原语 |
-| [csp-test.html](./examples/csp-test.html) | 严格 CSP 下行为段脚本执行 |
-| [nested-for.html](./examples/nested-for.html) | 用嵌套 `yq-for` 行搭建的可展开折叠树形菜单 |
+| [basic.html](../../../examples/basic.html) | 最小声明式组件，单条 script 引入 |
+| [full-demo.html](../../../examples/full-demo.html) | 声明式标签、事件、列表与状态同页展示 |
+| [parse-demo.html](../../../examples/parse-demo.html) | 模板解析过程演示 |
+| [reactive-demo.html](../../../examples/reactive-demo.html) | `state` / `derived` / `effect` 原语 |
+| [csp-test.html](../../../examples/csp-test.html) | 严格 CSP 下行为段脚本执行 |
+| [nested-for.html](../../../examples/nested-for.html) | 用嵌套 `yq-for` 行搭建的可展开折叠树形菜单 |
 
 ## 已知限制
 
@@ -150,7 +150,7 @@ ESM 入口为 `packages/core/dist/core.mjs`；全局构建为 `packages/core/dis
 
 | 文档 | 内容 |
 | --- | --- |
-| [English tutorial](./docs/tutorial.md) | Template syntax, state, effects and lifecycle from zero |
+| [English tutorial](../../tutorial.md) | Template syntax, state, effects and lifecycle from zero |
 | [中文教程](./tutorial.md) | 模板语法、状态、副作用与生命周期 |
 
 ## 仓库结构
@@ -189,4 +189,4 @@ yq-sanyi 由我们在业余时间开发与维护。如果它帮你节省了时�
 
 ## 许可证
 
-Apache License 2.0。Copyright 2026 YQteam-hq。详见 [LICENSE](./LICENSE)。
+Apache License 2.0。Copyright 2026 YQteam-hq。详见 [LICENSE](../../../LICENSE)。
