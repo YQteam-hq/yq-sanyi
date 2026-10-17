@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { existsSync, watch } from 'node:fs';
+import { existsSync, statSync, watch } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -138,6 +138,10 @@ export async function runDev(options) {
   const root = resolve(cwd, optionText(options, 'dir', typeof config.dir === 'string' ? config.dir : '.'));
   if (!existsSync(root)) {
     warn('directory not found: ' + root);
+    return 1;
+  }
+  if (!statSync(root).isDirectory()) {
+    warn('not a directory: ' + root);
     return 1;
   }
   const entry = optionText(options, 'entry', typeof config.entry === 'string' ? config.entry : 'index.html');
