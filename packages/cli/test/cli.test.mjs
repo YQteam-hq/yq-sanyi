@@ -457,4 +457,15 @@ describe('yq cli --quiet', () => {
     const out = run(['--help']);
     assert.ok(out.includes('--quiet'), out);
   });
+
+  it('suppresses the unknown command warning with --quiet', () => {
+    const result = runFailure(['--quiet', 'nope']);
+    assert.equal(result.status, 1);
+    assert.equal(result.stderr, '');
+    assert.ok(result.stdout.includes('usage: yq <command>'), result.stdout);
+  });
+
+  it('still prints the version with --quiet', () => {
+    assert.equal(run(['--quiet', '--version']).trim(), version);
+  });
 });
