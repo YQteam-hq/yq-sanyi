@@ -292,6 +292,30 @@ describe('yq dev', () => {
     assert.ok(result.stdout.includes('usage: yq dev'), result.stdout);
   });
 
+  it('rejects --dir when the path is a file', () => {
+    const dir = tempDir('dev-dir-file');
+    writeFileSync(join(dir, 'notes.txt'), 'plain');
+    const result = runFailure(['dev', '--dir', join(dir, 'notes.txt')], dir);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes('not a directory'), result.stderr);
+  });
+
+  it('rejects --dir when the path does not exist', () => {
+    const dir = tempDir('dev-dir-missing');
+    const result = runFailure(['dev', '--dir', join(dir, 'missing')], dir);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes('directory not found'), result.stderr);
+  });
+
+  it('rejects a config dir that points at a file', () => {
+    const dir = tempDir('dev-config-dir-file');
+    writeFileSync(join(dir, 'yq.config.mjs'), 'export default { dir: "notes.txt" };\n');
+    writeFileSync(join(dir, 'notes.txt'), 'plain');
+    const result = runFailure(['dev'], dir);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes('not a directory'), result.stderr);
+  });
+
   it('serves the entry document and injects the reload client', async () => {
     const res = await fetchRaw(port, '/');
     assert.equal(res.status, 200);
