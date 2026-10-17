@@ -76,5 +76,5 @@ if (problems.length > 0) {
   }
   process.exitCode = 1
 } else {
-  write('check-docs-links: ok - every relative link in the user-facing docs resolves')
+  write('check-docs-links: ok - every relative link in the ' + DOCS.length + ' user-facing docs resolves')
 }
