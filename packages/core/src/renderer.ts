@@ -961,30 +961,37 @@ const styleInjections = new Map<string, StyleInjection>()
 const themeVariables = new Map<string, string>()
 const globalStyles = new Map<string, string>()
 
+function scopeSelector(selector: string, scopeAttr: string): string {
+  const trimmed = selector.trim()
+  const first = trimmed[0]
+  if (!first || first === '*' || first === '@' || /%|^(from|to)$/i.test(trimmed)) return trimmed
+  const pseudoElement = trimmed.indexOf('::')
+  const cut = pseudoElement === -1 ? trimmed.length : pseudoElement
+  return trimmed.slice(0, cut) + '[' + scopeAttr + ']' + trimmed.slice(cut)
+}
+
+function scopeSelectorList(list: string, scopeAttr: string): string {
+  let out = ''
+  let nestingDepth = 0
+  let selectorStart = 0
+  for (let i = 0; i < list.length; i++) {
+    const char = list[i]
+    if (char === '(' || char === '[') nestingDepth++
+    else if (char === ')' || char === ']') nestingDepth--
+    else if (char === ',' && nestingDepth === 0) {
+      out += scopeSelector(list.slice(selectorStart, i), scopeAttr) + ','
+      selectorStart = i + 1
+    }
+  }
+  return out + scopeSelector(list.slice(selectorStart), scopeAttr)
+}
+
 function generateScopedCSS(cssText: string, scopeId: string): string {
   if (!cssText.trim()) return ''
-  
+
   const scopeAttr = `data-yq-scope="${scopeId}"`
-  
-  const scopedCSS = cssText
-    .replace(/([^{}]+)(?=[,{])/g, (selector) => {
-      if (selector.trim().startsWith('*')) {
-        return selector
-      }
-      
-      if (selector.includes(':') || selector.includes('::')) {
-        return selector
-      }
-      
-      const trimmedSelector = selector.trim()
-      if (trimmedSelector) {
-        return `${trimmedSelector}[${scopeAttr}]`
-      }
-      return selector
-    })
-    .replace(/([{}])/g, (match) => match)
-  
-  return scopedCSS
+
+  return cssText.replace(/([^{}]+)(?=\{)/g, (selector) => scopeSelectorList(selector, scopeAttr))
 }
 
 function hashStyleKey(cssText: string, scopeId: string): string {
@@ -1069,7 +1076,7 @@ function resetTheme(): void {
     'background-color': '#ffffff',
     'text-color': '#1f2937',
     'border-color': '#e5e7eb',
-    'shadow-color': 'rgba(0, 0, 0, 0.1)'
+    'shadow-color': 'rgba(0,0,0,.1)'
   }
 
   removeAuthoredThemeVariables(defaultTheme)
@@ -1497,12 +1504,7 @@ function withErrorBoundary(componentName: string, fallback?: (error: Error, erro
   return (instance: ComponentInstance): ComponentInstance => {
     const errorBoundary = new ErrorBoundary({
       fallback: fallback || ((error: Error, errorInfo: any) => {
-        return `<div style="padding: 20px; border: 1px solid #ff4757; border-radius: 4px; background-color: #fff5f5; color: #842029;">
-          <h3>⚠️ Component Error</h3>
-          <p><strong>Component:</strong> ${componentName}</p>
-          <p><strong>Error:</strong> ${error.message}</p>
-          <button onclick="this.closest('.error-boundary').reset()">Retry</button>
-        </div>`
+        return `<div style="padding:20px;border:1px solid #ff4757;background-color:#fff5f5;color:#842029"><h3>Component Error</h3><p>Component: ${componentName}</p><p>Error: ${error.message}</p><button onclick="this.closest('.error-boundary').reset()">Retry</button></div>`
       }),
       onError: (error: Error, errorInfo: any) => {
         console.error(`[ErrorBoundary] ${componentName}:`, error)
