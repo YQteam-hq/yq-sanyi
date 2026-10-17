@@ -4,7 +4,9 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline/promises';
 import { line, warn } from './log.mjs';
-import { optionText } from './args.mjs';
+import { optionText, ensureKnownOptions } from './args.mjs';
+
+const INIT_OPTIONS = new Set(['help', 'version', 'quiet', 'dir', 'yes', 'no-example']);
 
 const templateDir = fileURLToPath(new URL('../templates/init/', import.meta.url));
 const coreFallback = fileURLToPath(new URL('../../core/dist/core.global.js', import.meta.url));
@@ -95,6 +97,9 @@ export async function runInit(options) {
   if (options.help) {
     line(INIT_USAGE);
     return 0;
+  }
+  if (!ensureKnownOptions(options, INIT_OPTIONS, INIT_USAGE)) {
+    return 1;
   }
   let name = options._[1];
   let example = options['no-example'] !== true;

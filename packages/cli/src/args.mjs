@@ -1,3 +1,5 @@
+import { line, warn } from './log.mjs';
+
 const BOOLEAN = new Set(['help', 'version', 'yes', 'no-example', 'quiet']);
 const ALIAS = { h: 'help', v: 'version', y: 'yes' };
 
@@ -61,4 +63,30 @@ export function optionNumber(options, name, fallback) {
   }
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+export function collectUnknownOptions(options, known) {
+  const unknown = [];
+  for (const key of Object.keys(options)) {
+    if (key === '_') {
+      continue;
+    }
+    if (known.has(key)) {
+      continue;
+    }
+    unknown.push(key);
+  }
+  return unknown;
+}
+
+export function ensureKnownOptions(options, known, usage) {
+  const unknown = collectUnknownOptions(options, known);
+  if (unknown.length === 0) {
+    return true;
+  }
+  for (const name of unknown) {
+    warn(`unknown option --${name}`);
+  }
+  line(usage);
+  return false;
 }

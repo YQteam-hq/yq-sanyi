@@ -4,7 +4,9 @@ import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { line, warn } from './log.mjs';
-import { optionNumber, optionText } from './args.mjs';
+import { optionNumber, optionText, ensureKnownOptions } from './args.mjs';
+
+const DEV_OPTIONS = new Set(['help', 'version', 'quiet', 'dir', 'port', 'host', 'entry']);
 
 const reloadPath = '/__yq/reload';
 const reloadClient = '<script>new EventSource("' + reloadPath + '").onmessage=function(){location.reload()}</script>';
@@ -120,6 +122,9 @@ export async function runDev(options) {
   if (options.help) {
     line(DEV_USAGE);
     return 0;
+  }
+  if (!ensureKnownOptions(options, DEV_OPTIONS, DEV_USAGE)) {
+    return 1;
   }
   const cwd = process.cwd();
   const config = await loadConfig(cwd);

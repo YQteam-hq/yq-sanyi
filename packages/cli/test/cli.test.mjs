@@ -190,6 +190,24 @@ describe('yq cli', () => {
     assert.equal(result.status, 1);
     assert.ok(result.stderr.includes('invalid project name'), result.stderr);
   });
+
+  it('rejects an unknown option for init', () => {
+    const dir = tempDir('init-unknown-option');
+    const result = runFailure(['init', 'demo-app', '--forse'], dir);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes('unknown option --forse'), result.stderr);
+    assert.ok(result.stdout.includes('usage: yq init'), result.stdout);
+    assert.ok(!existsSync(join(dir, 'demo-app')), 'the scaffold must not be written');
+  });
+
+  it('reports every unknown option for init at once', () => {
+    const dir = tempDir('init-unknown-options');
+    const result = runFailure(['init', 'demo-app', '--forse', '--vervose'], dir);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes('unknown option --forse'), result.stderr);
+    assert.ok(result.stderr.includes('unknown option --vervose'), result.stderr);
+    assert.ok(!existsSync(join(dir, 'demo-app')), 'the scaffold must not be written');
+  });
 });
 
 describe('yq dev', () => {
@@ -253,6 +271,25 @@ describe('yq dev', () => {
     const out = run(['dev', '--help']);
     assert.ok(out.includes('usage: yq dev'), out);
     assert.ok(out.includes('--port'), out);
+  });
+
+  it('rejects an unknown option for dev', () => {
+    const dir = tempDir('dev-unknown-option');
+    writeFileSync(join(dir, 'index.html'), '<!DOCTYPE html>\n<html><body><h1>dev</h1></body></html>\n');
+    const result = runFailure(['dev', '--dirr', dir], dir);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes('unknown option --dirr'), result.stderr);
+    assert.ok(result.stdout.includes('usage: yq dev'), result.stdout);
+  });
+
+  it('reports every unknown option for dev at once', () => {
+    const dir = tempDir('dev-unknown-options');
+    writeFileSync(join(dir, 'index.html'), '<!DOCTYPE html>\n<html><body><h1>dev</h1></body></html>\n');
+    const result = runFailure(['dev', '--dirr', dir, '--por', '8080'], dir);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes('unknown option --dirr'), result.stderr);
+    assert.ok(result.stderr.includes('unknown option --por'), result.stderr);
+    assert.ok(result.stdout.includes('usage: yq dev'), result.stdout);
   });
 
   it('serves the entry document and injects the reload client', async () => {
