@@ -621,7 +621,7 @@ function createScriptFactory(script: unknown): (() => unknown) | null {
 import { renderSkeleton, populateNodeCache, fillSlots, updateSlots, createComponent, hydrate, mountComponent, updateComponent, unmountComponent, scoper, withErrorBoundary, getErrorBoundaryInfo, resetErrorBoundary, generateScopedCSS, injectStyle, removeStyle, updateTheme, getThemeVariables, resetTheme, addGlobalStyle, removeGlobalStyle, getGlobalStyles, clearGlobalStyles, createScopedElement, RowEventBindings } from './renderer.js'
 
 let effectStack: Effect[] = []
-let allEffects: Effect[] = []
+const allEffects = new Set<Effect>()
 let allDeriveds: any[] = []
 // M3-2: signal-aware derived tracker (parallel to effectStack for state())
 let activeSignalTracker: { signals: Set<any> } | null = null
@@ -849,8 +849,7 @@ function disposeEffectChildren(effectObj: Effect): void {
 }
 
 function disposeEffect(effectObj: Effect): void {
-  const idx = allEffects.indexOf(effectObj)
-  if (idx > -1) allEffects.splice(idx, 1)
+  allEffects.delete(effectObj)
   try {
     disposeEffectChildren(effectObj)
   } finally {
@@ -863,15 +862,9 @@ function disposeEffect(effectObj: Effect): void {
   }
 }
 
-function captureEffectChildren(effectObj: Effect, startIndex: number): void {
-  if (!effectObj.children) return
-  effectObj.children.push(...allEffects.slice(startIndex))
-}
-
 function createEffectRunner(effectObj: Effect, fn: () => void | (() => void)): () => void {
   return (): void => {
     disposeEffectChildren(effectObj)
-    const childrenStartIndex = allEffects.length
     effectStack.push(effectObj)
     try {
       const result = fn()
@@ -881,7 +874,6 @@ function createEffectRunner(effectObj: Effect, fn: () => void | (() => void)): (
     } finally {
       effectStack.pop()
     }
-    captureEffectChildren(effectObj, childrenStartIndex)
   }
 }
 
@@ -889,13 +881,17 @@ function effect(fn: () => void | (() => void), componentName?: string): () => vo
   const effectObj: Effect = { fn: () => {}, dependencies: [], dirty: false, children: [] }
   effectObj.fn = createEffectRunner(effectObj, fn)
   effectObj.dispose = (): void => disposeEffect(effectObj)
-  allEffects.push(effectObj)
+  const parent = effectStack.length > 0 ? effectStack[effectStack.length - 1] : null
+  if (parent && parent.children) {
+    parent.children.push(effectObj)
+  }
+  allEffects.add(effectObj)
   effectObj.fn()
   return effectObj.dispose!
 }
 
 function resetReactiveState(): void {
-  allEffects.length = 0
+  allEffects.clear()
   allDeriveds.length = 0
   batchQueue.length = 0
   effectStack.length = 0
