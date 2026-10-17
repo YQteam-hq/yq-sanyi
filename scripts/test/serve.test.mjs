@@ -52,6 +52,7 @@ describe('resolveWithin', () => {
       assert.equal(resolveWithin(root, '/..'), null);
       assert.equal(resolveWithin(root, '/../notes.txt'), null);
       assert.equal(resolveWithin(root, '/a/../../notes.txt'), null);
+      assert.equal(resolveWithin(root, '/../../etc/passwd'), null);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
