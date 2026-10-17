@@ -171,3 +171,131 @@ test('attr binding: boolean attr on mount', () => {
   assert.ok(input.attrs.disabled === '' || input.attrs.disabled === 'disabled' || input.attrs.disabled === true, 'disabled attr should be set when state true')
   unmountComponent(inst)
 })
+
+test('attr binding: attribute is dropped when the bound value becomes null', () => {
+  const inst = createComponent({
+    name: 'attr-binding-clear-null',
+    template: '<div><img src="{{ url }}"></div>',
+    script: () => ({ state: { url: 'a.png' } })
+  })
+  mountComponent(inst)
+  const img = findByTag(inst.root, 'IMG')
+  assert.strictEqual(img.getAttribute('src'), 'a.png')
+  inst.state.url = null
+  updateComponent(inst)
+  assert.strictEqual(img.getAttribute('src'), null, 'src should be gone once the bound value clears')
+  unmountComponent(inst)
+})
+
+test('attr binding: attribute is dropped when the bound value becomes undefined', () => {
+  const inst = createComponent({
+    name: 'attr-binding-clear-undefined',
+    template: '<div><img alt="{{ label }}"></div>',
+    script: () => ({ state: { label: 'cat' } })
+  })
+  mountComponent(inst)
+  const img = findByTag(inst.root, 'IMG')
+  assert.strictEqual(img.getAttribute('alt'), 'cat')
+  inst.state.label = undefined
+  updateComponent(inst)
+  assert.strictEqual(img.getAttribute('alt'), null, 'alt should be gone once the bound value clears')
+  unmountComponent(inst)
+})
+
+test('attr binding: attribute returns after clearing and then being set again', () => {
+  const inst = createComponent({
+    name: 'attr-binding-restore',
+    template: '<div><img src="{{ url }}"></div>',
+    script: () => ({ state: { url: 'a.png' } })
+  })
+  mountComponent(inst)
+  const img = findByTag(inst.root, 'IMG')
+  inst.state.url = null
+  updateComponent(inst)
+  assert.strictEqual(img.getAttribute('src'), null)
+  inst.state.url = 'b.png'
+  updateComponent(inst)
+  assert.strictEqual(img.getAttribute('src'), 'b.png')
+  unmountComponent(inst)
+})
+
+test('attr binding: an absent value leaves no attribute at mount', () => {
+  const inst = createComponent({
+    name: 'attr-binding-absent',
+    template: '<div><img src="{{ url }}"></div>',
+    script: () => ({ state: {} })
+  })
+  mountComponent(inst)
+  const img = findByTag(inst.root, 'IMG')
+  assert.strictEqual(img.getAttribute('src'), null)
+  unmountComponent(inst)
+})
+
+test('attr binding: an empty aria value still leaves no attribute', () => {
+  const inst = createComponent({
+    name: 'attr-binding-aria-empty',
+    template: '<div><span aria-label="{{ label }}">x</span></div>',
+    script: () => ({ state: { label: 'cat' } })
+  })
+  mountComponent(inst)
+  const span = findByTag(inst.root, 'SPAN')
+  assert.strictEqual(span.getAttribute('aria-label'), 'cat')
+  inst.state.label = ''
+  updateComponent(inst)
+  assert.strictEqual(span.getAttribute('aria-label'), null, 'a cleared aria value must not linger')
+  unmountComponent(inst)
+})
+
+test('attr binding: an update does not rewrite an attribute that did not change', () => {
+  const inst = createComponent({
+    name: 'attr-binding-idempotent',
+    template: '<div><img src="{{ url }}"></div>',
+    script: () => ({ state: { url: 'a.png' } })
+  })
+  mountComponent(inst)
+  const img = findByTag(inst.root, 'IMG')
+  let writes = 0
+  const realSet = img.setAttribute.bind(img)
+  img.setAttribute = (name, value) => {
+    writes++
+    realSet(name, value)
+  }
+  updateComponent(inst)
+  assert.strictEqual(writes, 0, 'a stable attribute should not be written again on update')
+  inst.state.url = 'b.png'
+  updateComponent(inst)
+  assert.strictEqual(writes, 1, 'a changed attribute should be written exactly once')
+  unmountComponent(inst)
+})
+
+test('attr binding: clearing an attribute that is absent does not remove it again', () => {
+  const inst = createComponent({
+    name: 'attr-binding-absent-remove',
+    template: '<div><img src="{{ url }}"></div>',
+    script: () => ({ state: {} })
+  })
+  mountComponent(inst)
+  const img = findByTag(inst.root, 'IMG')
+  let removals = 0
+  const realRemove = img.removeAttribute.bind(img)
+  img.removeAttribute = (name) => {
+    removals++
+    realRemove(name)
+  }
+  updateComponent(inst)
+  assert.strictEqual(removals, 0, 'nothing should be removed when there is no attribute')
+  unmountComponent(inst)
+})
+
+test('attr binding: an aria value that is empty at mount leaves no placeholder', () => {
+  const inst = createComponent({
+    name: 'attr-binding-aria-mount',
+    template: '<div><span aria-label="{{ label }}">x</span></div>',
+    script: () => ({ state: { label: '' } })
+  })
+  mountComponent(inst)
+  const span = findByTag(inst.root, 'SPAN')
+  const value = span.getAttribute('aria-label')
+  assert.strictEqual(value, null, 'the clone placeholder must not survive, got ' + JSON.stringify(value))
+  unmountComponent(inst)
+})
