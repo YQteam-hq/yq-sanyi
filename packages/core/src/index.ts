@@ -345,6 +345,14 @@ function expandFragments(html: string): string {
   return curr
 }
 
+function readUnquotedValue(html: string, start: number): { value: string; end: number } {
+  let end = start
+  while (end < html.length && !' \t\n\r>'.includes(html[end]) && !(html[end] === '/' && html[end + 1] === '>')) {
+    end++
+  }
+  return { value: html.substring(start, end), end }
+}
+
 function parseTemplate(name: string, template: string): { root: SNode; nodes: SNode[]; nodeIndex: Map<number, SNode>; slots: Slot[] } {
   template = expandFragments(template)
   const slots: Slot[] = []
@@ -431,12 +439,10 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
     let currentAttr = ''
     let currentAttrValue: string[] = []
     let inQuote = null
-    let inUnquoted = false
     const commitAttr = (): void => {
       handleAttr(node, currentAttr, currentAttrValue.join(''))
       currentAttr = ''
       currentAttrValue = []
-      inUnquoted = false
     }
 
     while (i < html.length) {
@@ -458,8 +464,11 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
             currentAttrValue = []
             i++
           } else {
-            inUnquoted = true
+            const unquoted = readUnquotedValue(html, i)
+            handleAttr(node, currentAttr, unquoted.value)
+            currentAttr = ''
             currentAttrValue = []
+            i = unquoted.end
           }
         } else {
           i++
@@ -469,11 +478,9 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
         currentAttrValue = []
         i++
       } else if (char === '>') {
-        if (inUnquoted) commitAttr()
         i++
         break
       } else if (char === '/') {
-        if (inUnquoted && html[i + 1] === '>') commitAttr()
         inSelfClosing = true
         i++
         if (i < html.length && html[i] === '>') {
@@ -482,9 +489,6 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
         }
       } else if (/[ \t\n\r]/.test(char)) {
         if (currentAttr.length > 0) commitAttr()
-        i++
-      } else if (inUnquoted) {
-        currentAttrValue.push(char)
         i++
       } else {
         if (currentAttr.length === 0) {
