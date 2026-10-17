@@ -29,6 +29,7 @@ export const INIT_USAGE = [
   '  --dir <path>   parent directory of the project, defaults to the current directory',
   '  --yes, -y      accept the defaults and skip the prompts',
   '  --no-example   leave out the counter component',
+  '  --quiet        silence the yq: warning lines on stderr',
   '  -h, --help     show this help'
 ].join('\n');
 

@@ -121,6 +121,14 @@ describe('yq cli', () => {
     assert.ok(out.includes('dev'), out);
   });
 
+  it('documents every init option in its usage', () => {
+    const out = run(['init', '--help']);
+    assert.ok(out.includes('usage: yq init'), out);
+    assert.ok(out.includes('--yes'), out);
+    assert.ok(out.includes('--no-example'), out);
+    assert.ok(out.includes('--quiet'), out);
+  });
+
   it('prints the cli version for --version', () => {
     assert.equal(run(['--version']).trim(), version);
   });
@@ -271,6 +279,7 @@ describe('yq dev', () => {
     const out = run(['dev', '--help']);
     assert.ok(out.includes('usage: yq dev'), out);
     assert.ok(out.includes('--port'), out);
+    assert.ok(out.includes('--quiet'), out);
   });
 
   it('rejects an unknown option for dev', () => {
