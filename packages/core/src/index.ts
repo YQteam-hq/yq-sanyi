@@ -830,18 +830,46 @@ function effectPre(fn: () => void | (() => void)): () => void {
   }
 }
 
+function isCleanup(value: unknown): value is () => void {
+  return typeof value === 'function'
+}
+
+function runCleanups(cleanups: Array<() => void>): void {
+  let failure: unknown = null
+  for (const cleanup of cleanups) {
+    try {
+      cleanup()
+    } catch (error) {
+      if (failure === null) {
+        failure = error
+      }
+    }
+  }
+  cleanups.length = 0
+  if (failure !== null) {
+    throw failure
+  }
+}
+
 function effectScope(): EffectScope {
   let stopped = false
   const cleanups: Array<() => void> = []
+  const collect = (value: unknown): void => {
+    if (isCleanup(value)) {
+      cleanups.push(value)
+    }
+  }
   return {
     run<T>(fn: () => T): T | undefined {
       if (stopped) return undefined
-      return fn()
+      const result = fn()
+      collect(result)
+      return result
     },
     stop(): void {
+      if (stopped) return
       stopped = true
-      for (const c of cleanups) c()
-      cleanups.length = 0
+      runCleanups(cleanups)
     }
   }
 }
