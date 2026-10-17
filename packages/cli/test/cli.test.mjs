@@ -62,7 +62,7 @@ function fetchRaw(port, path) {
         chunks.push(chunk);
       });
       res.on('end', () => {
-        settle({ status: res.statusCode, type: String(res.headers['content-type'] || ''), body: chunks.join('') });
+        settle({ status: res.statusCode, type: String(res.headers['content-type'] || ''), headers: res.headers, body: chunks.join('') });
       });
     });
     req.on('error', fail);
@@ -306,6 +306,15 @@ describe('yq dev', () => {
     assert.equal(res.status, 200);
     assert.ok(res.type.includes('text/css'), res.type);
     assert.ok(res.body.includes('color: #111'), res.body);
+  });
+
+  it('serves every response with no-store so edits are never cached', async () => {
+    const entry = await fetchRaw(port, '/');
+    assert.equal(entry.status, 200);
+    assert.equal(entry.headers['cache-control'], 'no-store');
+    const asset = await fetchRaw(port, '/style.css');
+    assert.equal(asset.status, 200);
+    assert.equal(asset.headers['cache-control'], 'no-store');
   });
 
   it('answers 404 for a missing file', async () => {
