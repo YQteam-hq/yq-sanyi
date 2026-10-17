@@ -32,6 +32,7 @@ export const DEV_USAGE = [
   '  --port <number> port to listen on, defaults to yq.config.mjs or 8080',
   '  --host <name>   interface to bind, defaults to 127.0.0.1',
   '  --entry <file>  document served for the directory root, defaults to index.html',
+  '  --quiet         silence the yq: warning lines on stderr',
   '  -h, --help      show this help'
 ].join('\n');
 

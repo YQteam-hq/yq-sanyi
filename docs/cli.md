@@ -26,6 +26,7 @@ yq init <name> [options]
 --dir <path>   parent directory of the project, defaults to the current directory
 --yes, -y      accept the defaults and skip the prompts
 --no-example   leave out the counter component
+--quiet        silence the yq: warning lines on stderr
 ```
 
 Without `--yes` and with a terminal attached, the command asks for the project name
@@ -63,6 +64,7 @@ yq dev [options]
 --port <number> port to listen on, defaults to yq.config.mjs or 8080
 --host <name>   interface to bind, defaults to 127.0.0.1
 --entry <file>  document served for the directory root, defaults to index.html
+--quiet         silence the yq: warning lines on stderr
 ```
 
 The server reads `yq.config.mjs` from the working directory when the file exists and
