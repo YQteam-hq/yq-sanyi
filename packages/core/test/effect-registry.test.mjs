@@ -68,6 +68,25 @@ test('disposing an effect removes it from the registry', async () => {
   assert.equal(dumpReactiveState().effects.length, 0)
 })
 
+test('a failing child cleanup does not strand its siblings or the parent', () => {
+  resetReactiveState()
+  const order = []
+  const stop = effect(() => {
+    effect(() => () => {
+      order.push('first')
+      throw new Error('child cleanup failed')
+    })
+    effect(() => () => {
+      order.push('second')
+    })
+    return () => {
+      order.push('parent')
+    }
+  })
+  assert.throws(() => stop(), /child cleanup failed/)
+  assert.deepEqual(order, ['first', 'second', 'parent'], 'disposal must reach every cleanup')
+})
+
 test('disposing twice runs the cleanup once', async () => {
   resetReactiveState()
   const count = state(0)

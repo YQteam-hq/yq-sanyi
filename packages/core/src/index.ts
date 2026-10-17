@@ -832,21 +832,34 @@ function effectScope(): EffectScope {
 function disposeEffectChildren(effectObj: Effect): void {
   const children = effectObj.children
   if (!children) return
+  let failure: unknown = null
   for (const child of children) {
-    if (typeof child.dispose === 'function') child.dispose()
+    try {
+      if (typeof child.dispose === 'function') child.dispose()
+    } catch (error) {
+      if (failure === null) {
+        failure = error
+      }
+    }
   }
   children.length = 0
+  if (failure !== null) {
+    throw failure
+  }
 }
 
 function disposeEffect(effectObj: Effect): void {
   const idx = allEffects.indexOf(effectObj)
   if (idx > -1) allEffects.splice(idx, 1)
-  disposeEffectChildren(effectObj)
-  effectObj.dependencies.length = 0
-  const cleanup = effectObj.cleanup
-  if (cleanup) {
-    effectObj.cleanup = undefined
-    cleanup()
+  try {
+    disposeEffectChildren(effectObj)
+  } finally {
+    effectObj.dependencies.length = 0
+    const cleanup = effectObj.cleanup
+    if (cleanup) {
+      effectObj.cleanup = undefined
+      cleanup()
+    }
   }
 }
 
