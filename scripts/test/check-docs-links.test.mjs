@@ -37,6 +37,11 @@ describe('collectLinks', () => {
     assert.deepEqual(collectLinks(text), []);
   });
 
+  it('ignores every link after an unclosed fence', () => {
+    const text = ['```', '[gone](./missing.md)', '[also gone](./missing.md)'].join('\n');
+    assert.deepEqual(collectLinks(text), []);
+  });
+
   it('keeps line numbers after a fenced block', () => {
     const text = ['```', 'code', '```', '', 'see [a](./a.md)'].join('\n');
     assert.deepEqual(collectLinks(text), [{ target: './a.md', line: 5 }]);

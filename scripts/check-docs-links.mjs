@@ -37,49 +37,75 @@ function decode(target) {
   }
 }
 
-function lineOf(text, index) {
-  let line = 1
-  for (let i = 0; i < index; i++) {
-    if (text.charCodeAt(i) === 10) line++
+function lineStarts(text) {
+  const starts = [0]
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) === 10) starts.push(i + 1)
   }
-  return line
+  return starts
 }
 
-function withoutFences(text) {
-  const out = []
-  let fenced = false
-  for (const lineText of text.split('\n')) {
-    if (FENCE.test(lineText)) {
-      fenced = !fenced
-      out.push('')
+function lineOf(starts, index) {
+  let low = 0
+  let high = starts.length - 1
+  while (low < high) {
+    const mid = (low + high + 1) >> 1
+    if (starts[mid] <= index) {
+      low = mid
       continue
     }
-    out.push(fenced ? '' : lineText)
+    high = mid - 1
   }
-  return out.join('\n')
+  return low + 1
+}
+
+function fencedRanges(text) {
+  const ranges = []
+  let open = -1
+  let offset = 0
+  for (const lineText of text.split('\n')) {
+    const next = offset + lineText.length + 1
+    if (FENCE.test(lineText)) {
+      if (open === -1) {
+        open = offset
+      } else {
+        ranges.push([open, next])
+        open = -1
+      }
+    }
+    offset = next
+  }
+  if (open !== -1) ranges.push([open, text.length])
+  return ranges
+}
+
+function inside(ranges, index) {
+  return ranges.some(([from, to]) => index >= from && index < to)
+}
+
+function scan(pattern, text, pick) {
+  const found = []
+  pattern.lastIndex = 0
+  let match
+  while ((match = pattern.exec(text)) !== null) {
+    found.push({ index: match.index, target: pick(match) })
+  }
+  return found
 }
 
 export function collectLinks(text) {
-  const body = withoutFences(text)
-  const links = []
-  INLINE.lastIndex = 0
-  let match
-  while ((match = INLINE.exec(body)) !== null) {
-    links.push({ target: match[1], line: lineOf(body, match.index) })
-  }
-  DEFINITION.lastIndex = 0
-  while ((match = DEFINITION.exec(body)) !== null) {
-    const target = match[1] === undefined ? match[2] : match[1]
-    links.push({ target, line: lineOf(body, match.index) })
-  }
-  return links
+  const starts = lineStarts(text)
+  const fenced = fencedRanges(text)
+  const found = scan(INLINE, text, (match) => match[1]).concat(
+    scan(DEFINITION, text, (match) => (match[1] === undefined ? match[2] : match[1]))
+  )
+  found.sort((left, right) => left.index - right.index)
+  return found
+    .filter((link) => !inside(fenced, link.index))
+    .map((link) => ({ target: link.target, line: lineOf(starts, link.index) }))
 }
 
-function check() {
-  const docs = readdirSync(root)
-    .filter((name) => name.endsWith('.md'))
-    .concat(listMarkdown(join(root, 'docs')).map((rel) => 'docs/' + rel))
-    .sort()
+function collectProblems(docs) {
   const problems = []
   for (const doc of docs) {
     const abs = join(root, doc)
@@ -96,6 +122,15 @@ function check() {
       }
     }
   }
+  return problems
+}
+
+function check() {
+  const docs = readdirSync(root)
+    .filter((name) => name.endsWith('.md'))
+    .concat(listMarkdown(join(root, 'docs')).map((rel) => 'docs/' + rel))
+    .sort()
+  const problems = collectProblems(docs)
   if (problems.length > 0) {
     for (const problem of problems) {
       write('check-docs-links: ' + problem)
