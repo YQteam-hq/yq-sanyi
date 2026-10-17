@@ -77,7 +77,14 @@ function makeHandler(root, entry, clients) {
       });
       return;
     }
-    let pathname = decodeURIComponent(url.pathname);
+    let pathname;
+    try {
+      pathname = decodeURIComponent(url.pathname);
+    } catch (error) {
+      res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' });
+      res.end('bad request');
+      return;
+    }
     if (pathname === '/') {
       pathname = '/' + entry;
     }
