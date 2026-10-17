@@ -105,11 +105,11 @@ function makeHandler(root, entry, clients) {
     const type = contentTypes[extname(file).toLowerCase()] || 'application/octet-stream';
     if (type.startsWith('text/html')) {
       const text = body.toString('utf8');
-      res.writeHead(200, { 'content-type': type });
+      res.writeHead(200, { 'content-type': type, 'cache-control': 'no-store' });
       res.end(text.includes('</body>') ? text.replace('</body>', reloadClient + '</body>') : text + reloadClient);
       return;
     }
-    res.writeHead(200, { 'content-type': type });
+    res.writeHead(200, { 'content-type': type, 'cache-control': 'no-store' });
     res.end(body);
   };
 }
