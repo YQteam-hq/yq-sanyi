@@ -347,7 +347,7 @@ function expandFragments(html: string): string {
 
 function readUnquotedValue(html: string, start: number): { value: string; end: number } {
   let end = start
-  while (end < html.length && !/[ \t\n\r>]/.test(html[end]) && !(html[end] === '/' && html[end + 1] === '>')) {
+  while (end < html.length && !' \t\n\r>'.includes(html[end]) && !(html[end] === '/' && html[end + 1] === '>')) {
     end++
   }
   return { value: html.substring(start, end), end }
