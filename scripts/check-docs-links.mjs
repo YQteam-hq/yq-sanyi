@@ -7,7 +7,7 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist'])
 
 const INLINE = /\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g
-const DEFINITION = /^ {0,3}\[[^\]^][^\]]*\]:[ \t]*(?:<([^>]*)>|(\S+))/gm
+const DEFINITION = /^ {0,3}\[([^\]]+)\]:[ \t]*(.*)$/gm
 const FENCE = /^ {0,3}(```|~~~)/
 const EXTERNAL = /^([a-z][a-z0-9+.-]*:|\/\/|#)/i
 
@@ -83,26 +83,44 @@ function inside(ranges, index) {
   return ranges.some(([from, to]) => index >= from && index < to)
 }
 
+function definitionTarget(rest) {
+  const text = rest.trim()
+  if (text.startsWith('<')) {
+    const end = text.indexOf('>')
+    return end === -1 ? text.slice(1) : text.slice(1, end)
+  }
+  const cut = text.search(/\s/)
+  return cut === -1 ? text : text.slice(0, cut)
+}
+
 function scan(pattern, text, pick) {
   const found = []
   pattern.lastIndex = 0
   let match
   while ((match = pattern.exec(text)) !== null) {
-    found.push({ index: match.index, target: pick(match) })
+    const target = pick(match)
+    if (target !== null) found.push({ index: match.index, target })
   }
   return found
+}
+
+function matches(text) {
+  const inline = scan(INLINE, text, (match) => match[1])
+  const definitions = scan(DEFINITION, text, (match) =>
+    match[1].startsWith('^') ? null : definitionTarget(match[2])
+  )
+  return inline.concat(definitions).sort((left, right) => left.index - right.index)
 }
 
 export function collectLinks(text) {
   const starts = lineStarts(text)
   const fenced = fencedRanges(text)
-  const found = scan(INLINE, text, (match) => match[1]).concat(
-    scan(DEFINITION, text, (match) => (match[1] === undefined ? match[2] : match[1]))
-  )
-  found.sort((left, right) => left.index - right.index)
-  return found
-    .filter((link) => !inside(fenced, link.index))
-    .map((link) => ({ target: link.target, line: lineOf(starts, link.index) }))
+  const links = []
+  for (const match of matches(text)) {
+    if (match.target.length === 0 || inside(fenced, match.index)) continue
+    links.push({ target: match.target, line: lineOf(starts, match.index) })
+  }
+  return links
 }
 
 function collectProblems(docs) {

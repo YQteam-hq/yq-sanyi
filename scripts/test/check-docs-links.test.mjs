@@ -27,6 +27,18 @@ describe('collectLinks', () => {
     assert.deepEqual(collectLinks('[^1]: a note that is not a path\n'), []);
   });
 
+  it('drops a title after the definition target', () => {
+    assert.deepEqual(collectLinks('[spec]: ./docs/spec.md "Spec"\n'), [{ target: './docs/spec.md', line: 1 }]);
+  });
+
+  it('keeps a space inside an angle bracketed definition target', () => {
+    assert.deepEqual(collectLinks('[spec]: <./docs/a b.md>\n'), [{ target: './docs/a b.md', line: 1 }]);
+  });
+
+  it('skips a definition without a target', () => {
+    assert.deepEqual(collectLinks('[spec]:\n'), []);
+  });
+
   it('ignores links and definitions inside a fenced block', () => {
     const text = ['```md', '[gone](docs/missing.md)', '[spec]: ./missing.md', '```', '[kept](docs/cli.md)'].join('\n');
     assert.deepEqual(collectLinks(text), [{ target: 'docs/cli.md', line: 5 }]);
