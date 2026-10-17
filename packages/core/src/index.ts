@@ -60,6 +60,8 @@ export interface Effect {
   dependencies: State<any>[]
   cleanup?: () => void
   dirty?: boolean
+  children?: Effect[]
+  dispose?: () => void
 }
 
 export interface RenderContext {
@@ -623,7 +625,7 @@ function createScriptFactory(script: unknown): (() => unknown) | null {
 import { renderSkeleton, populateNodeCache, fillSlots, updateSlots, createComponent, hydrate, mountComponent, updateComponent, unmountComponent, scoper, withErrorBoundary, getErrorBoundaryInfo, resetErrorBoundary, generateScopedCSS, injectStyle, removeStyle, updateTheme, getThemeVariables, resetTheme, addGlobalStyle, removeGlobalStyle, getGlobalStyles, clearGlobalStyles, createScopedElement, RowEventBindings } from './renderer.js'
 
 let effectStack: Effect[] = []
-let allEffects: Effect[] = []
+const allEffects = new Set<Effect>()
 let allDeriveds: any[] = []
 // M3-2: signal-aware derived tracker (parallel to effectStack for state())
 let activeSignalTracker: { signals: Set<any> } | null = null
@@ -874,45 +876,69 @@ function effectScope(): EffectScope {
   }
 }
 
-function effect(fn: () => void | (() => void), componentName?: string): () => void {
-  const dependencies: State<any>[] = []
-  let cleanup: (() => void) | null = null
-  const effectObj: Effect = { fn: () => {}, dependencies, dirty: false }
-  let prevStart = 0
-  let prevEnd = 0
-  function wrappedFn(): void {
-    while (allEffects.length > prevStart) {
-      allEffects.pop()
-    }
-    effectStack.push(effectObj)
+function disposeEffectChildren(effectObj: Effect): void {
+  const children = effectObj.children
+  if (!children) return
+  let failure: unknown = null
+  for (const child of children) {
     try {
-      const result = fn()
-      if (typeof result === 'function') {
-        cleanup = result
+      if (typeof child.dispose === 'function') child.dispose()
+    } catch (error) {
+      if (failure === null) {
+        failure = error
       }
-    } finally {
-      effectStack.pop()
     }
-    prevStart = prevEnd
-    prevEnd = allEffects.length
   }
-  effectObj.fn = wrappedFn
-  allEffects.push(effectObj)
-  prevStart = allEffects.length
-  prevEnd = allEffects.length
-  wrappedFn()
-  return () => {
-    const idx = allEffects.indexOf(effectObj)
-    if (idx > -1) allEffects.splice(idx, 1)
+  children.length = 0
+  if (failure !== null) {
+    throw failure
+  }
+}
+
+function disposeEffect(effectObj: Effect): void {
+  allEffects.delete(effectObj)
+  try {
+    disposeEffectChildren(effectObj)
+  } finally {
+    effectObj.dependencies.length = 0
+    const cleanup = effectObj.cleanup
     if (cleanup) {
+      effectObj.cleanup = undefined
       cleanup()
-      cleanup = null
     }
   }
 }
 
+function createEffectRunner(effectObj: Effect, fn: () => void | (() => void)): () => void {
+  return (): void => {
+    disposeEffectChildren(effectObj)
+    effectStack.push(effectObj)
+    try {
+      const result = fn()
+      if (typeof result === 'function') {
+        effectObj.cleanup = result
+      }
+    } finally {
+      effectStack.pop()
+    }
+  }
+}
+
+function effect(fn: () => void | (() => void), componentName?: string): () => void {
+  const effectObj: Effect = { fn: () => {}, dependencies: [], dirty: false, children: [] }
+  effectObj.fn = createEffectRunner(effectObj, fn)
+  effectObj.dispose = (): void => disposeEffect(effectObj)
+  const parent = effectStack.length > 0 ? effectStack[effectStack.length - 1] : null
+  if (parent && parent.children) {
+    parent.children.push(effectObj)
+  }
+  allEffects.add(effectObj)
+  effectObj.fn()
+  return effectObj.dispose!
+}
+
 function resetReactiveState(): void {
-  allEffects.length = 0
+  allEffects.clear()
   allDeriveds.length = 0
   batchQueue.length = 0
   effectStack.length = 0
