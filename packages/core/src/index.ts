@@ -627,6 +627,7 @@ import { renderSkeleton, populateNodeCache, fillSlots, updateSlots, createCompon
 let effectStack: Effect[] = []
 const allEffects = new Set<Effect>()
 let allDeriveds: any[] = []
+// M3-2: signal-aware derived tracker (parallel to effectStack for state())
 let activeSignalTracker: { signals: Set<any> } | null = null
 let batchQueue: Array<() => void> = []
 let isFlushing = false
@@ -794,6 +795,7 @@ function derived<T>(computeFn: () => T): Derived<T> {
             dependencies.length = 0
             dependencies.push(...currentEffect.dependencies)
           }
+          // (Re)subscribe to any new signals read this pass
           for (const u of signalSubs) u()
           signalSubs.length = 0
           for (const s of tracker.signals) {
