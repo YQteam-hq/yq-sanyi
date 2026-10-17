@@ -60,6 +60,8 @@ export interface Effect {
   dependencies: State<any>[]
   cleanup?: () => void
   dirty?: boolean
+  children?: Effect[]
+  dispose?: () => void
 }
 
 export interface RenderContext {
@@ -343,6 +345,14 @@ function expandFragments(html: string): string {
   return curr
 }
 
+function readUnquotedValue(html: string, start: number): { value: string; end: number } {
+  let end = start
+  while (end < html.length && !' \t\n\r>'.includes(html[end]) && !(html[end] === '/' && html[end + 1] === '>')) {
+    end++
+  }
+  return { value: html.substring(start, end), end }
+}
+
 function parseTemplate(name: string, template: string): { root: SNode; nodes: SNode[]; nodeIndex: Map<number, SNode>; slots: Slot[] } {
   template = expandFragments(template)
   const slots: Slot[] = []
@@ -429,12 +439,10 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
     let currentAttr = ''
     let currentAttrValue: string[] = []
     let inQuote = null
-    let inUnquoted = false
     const commitAttr = (): void => {
       handleAttr(node, currentAttr, currentAttrValue.join(''))
       currentAttr = ''
       currentAttrValue = []
-      inUnquoted = false
     }
 
     while (i < html.length) {
@@ -456,8 +464,11 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
             currentAttrValue = []
             i++
           } else {
-            inUnquoted = true
+            const unquoted = readUnquotedValue(html, i)
+            handleAttr(node, currentAttr, unquoted.value)
+            currentAttr = ''
             currentAttrValue = []
+            i = unquoted.end
           }
         } else {
           i++
@@ -467,11 +478,9 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
         currentAttrValue = []
         i++
       } else if (char === '>') {
-        if (inUnquoted) commitAttr()
         i++
         break
       } else if (char === '/') {
-        if (inUnquoted && html[i + 1] === '>') commitAttr()
         inSelfClosing = true
         i++
         if (i < html.length && html[i] === '>') {
@@ -480,9 +489,6 @@ function parseTemplate(name: string, template: string): { root: SNode; nodes: SN
         }
       } else if (/[ \t\n\r]/.test(char)) {
         if (currentAttr.length > 0) commitAttr()
-        i++
-      } else if (inUnquoted) {
-        currentAttrValue.push(char)
         i++
       } else {
         if (currentAttr.length === 0) {
@@ -623,9 +629,8 @@ function createScriptFactory(script: unknown): (() => unknown) | null {
 import { renderSkeleton, populateNodeCache, fillSlots, updateSlots, createComponent, hydrate, mountComponent, updateComponent, unmountComponent, scoper, withErrorBoundary, getErrorBoundaryInfo, resetErrorBoundary, generateScopedCSS, injectStyle, removeStyle, updateTheme, getThemeVariables, resetTheme, addGlobalStyle, removeGlobalStyle, getGlobalStyles, clearGlobalStyles, createScopedElement, RowEventBindings } from './renderer.js'
 
 let effectStack: Effect[] = []
-let allEffects: Effect[] = []
+const allEffects = new Set<Effect>()
 let allDeriveds: any[] = []
-// M3-2: signal-aware derived tracker (parallel to effectStack for state())
 let activeSignalTracker: { signals: Set<any> } | null = null
 let batchQueue: Array<() => void> = []
 let isFlushing = false
@@ -793,7 +798,6 @@ function derived<T>(computeFn: () => T): Derived<T> {
             dependencies.length = 0
             dependencies.push(...currentEffect.dependencies)
           }
-          // (Re)subscribe to any new signals read this pass
           for (const u of signalSubs) u()
           signalSubs.length = 0
           for (const s of tracker.signals) {
@@ -830,61 +834,113 @@ function effectPre(fn: () => void | (() => void)): () => void {
   }
 }
 
+function isCleanup(value: unknown): value is () => void {
+  return typeof value === 'function'
+}
+
+function runCleanups(cleanups: Array<() => void>): void {
+  let failure: unknown = null
+  for (const cleanup of cleanups) {
+    try {
+      cleanup()
+    } catch (error) {
+      if (failure === null) {
+        failure = error
+      }
+    }
+  }
+  cleanups.length = 0
+  if (failure !== null) {
+    throw failure
+  }
+}
+
 function effectScope(): EffectScope {
   let stopped = false
   const cleanups: Array<() => void> = []
+  const collect = (value: unknown): void => {
+    if (isCleanup(value)) {
+      cleanups.push(value)
+    }
+  }
   return {
     run<T>(fn: () => T): T | undefined {
       if (stopped) return undefined
-      return fn()
+      const result = fn()
+      collect(result)
+      return result
     },
     stop(): void {
+      if (stopped) return
       stopped = true
-      for (const c of cleanups) c()
-      cleanups.length = 0
+      runCleanups(cleanups)
+    }
+  }
+}
+
+function disposeEffectChildren(effectObj: Effect): void {
+  const children = effectObj.children
+  if (!children) return
+  let failure: unknown = null
+  for (const child of children) {
+    try {
+      if (typeof child.dispose === 'function') child.dispose()
+    } catch (error) {
+      if (failure === null) {
+        failure = error
+      }
+    }
+  }
+  children.length = 0
+  if (failure !== null) {
+    throw failure
+  }
+}
+
+function disposeEffect(effectObj: Effect): void {
+  allEffects.delete(effectObj)
+  try {
+    disposeEffectChildren(effectObj)
+  } finally {
+    effectObj.dependencies.length = 0
+    const cleanup = effectObj.cleanup
+    if (cleanup) {
+      effectObj.cleanup = undefined
+      cleanup()
+    }
+  }
+}
+
+function createEffectRunner(effectObj: Effect, fn: () => void | (() => void)): () => void {
+  return (): void => {
+    disposeEffectChildren(effectObj)
+    effectStack.push(effectObj)
+    try {
+      const result = fn()
+      if (typeof result === 'function') {
+        effectObj.cleanup = result
+      }
+    } finally {
+      effectStack.pop()
     }
   }
 }
 
 function effect(fn: () => void | (() => void), componentName?: string): () => void {
-  const dependencies: State<any>[] = []
-  let cleanup: (() => void) | null = null
-  const effectObj: Effect = { fn: () => {}, dependencies, dirty: false }
-  let prevStart = 0
-  let prevEnd = 0
-  function wrappedFn(): void {
-    while (allEffects.length > prevStart) {
-      allEffects.pop()
-    }
-    effectStack.push(effectObj)
-    try {
-      const result = fn()
-      if (typeof result === 'function') {
-        cleanup = result
-      }
-    } finally {
-      effectStack.pop()
-    }
-    prevStart = prevEnd
-    prevEnd = allEffects.length
+  const effectObj: Effect = { fn: () => {}, dependencies: [], dirty: false, children: [] }
+  effectObj.fn = createEffectRunner(effectObj, fn)
+  effectObj.dispose = (): void => disposeEffect(effectObj)
+  const parent = effectStack.length > 0 ? effectStack[effectStack.length - 1] : null
+  if (parent && parent.children) {
+    parent.children.push(effectObj)
   }
-  effectObj.fn = wrappedFn
-  allEffects.push(effectObj)
-  prevStart = allEffects.length
-  prevEnd = allEffects.length
-  wrappedFn()
-  return () => {
-    const idx = allEffects.indexOf(effectObj)
-    if (idx > -1) allEffects.splice(idx, 1)
-    if (cleanup) {
-      cleanup()
-      cleanup = null
-    }
-  }
+  allEffects.add(effectObj)
+  effectObj.fn()
+  return effectObj.dispose!
 }
 
 function resetReactiveState(): void {
-  allEffects.length = 0
+  allEffects.clear()
   allDeriveds.length = 0
   batchQueue.length = 0
   effectStack.length = 0

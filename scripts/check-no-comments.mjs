@@ -34,39 +34,166 @@ function walk(dir, out) {
   }
 }
 
-function maskStrings(text) {
-  let out = '';
-  let i = 0;
-  const n = text.length;
-  while (i < n) {
-    const ch = text[i];
-    if (ch === "'" || ch === '"' || ch === '`') {
-      const quote = ch;
-      out += quote;
-      i++;
-      while (i < n) {
-        const c = text[i];
-        if (c === '\\') {
-          out += c;
-          if (i + 1 < n) {
-            out += text[i + 1];
-          }
-          i += 2;
-          continue;
-        }
-        out += c === '\n' ? '\n' : ' ';
-        if (c === quote) {
-          i++;
-          break;
-        }
-        i++;
-      }
-      continue;
+const REGEX_PRECEDERS = /(?:\breturn\b|\btypeof\b|\binstanceof\b|\bnew\b|\bdelete\b|\bvoid\b|\bcase\b|\bin\b|\bof\b|\bdo\b|\belse\b|\byield\b|\bawait\b|\bthrow\b)$/
+const DIVISION_PRECEDERS = /[A-Za-z0-9_$)\]]$/
+const IDENTIFIER_START = /[A-Za-z_$]/
+
+function endsWithDivisionContext(before) {
+  const trimmed = before.replace(/\s+$/, '')
+  if (trimmed.length === 0) return false
+  if (REGEX_PRECEDERS.test(trimmed)) return false
+  if (DIVISION_PRECEDERS.test(trimmed)) return true
+  if (IDENTIFIER_START.test(trimmed[trimmed.length - 1])) return true
+  return false
+}
+
+function scanRegexLiteral(text, start) {
+  let index = start + 1
+  let inClass = false
+  while (index < text.length) {
+    const char = text[index]
+    if (char === '\\') {
+      index += 2
+      continue
     }
-    out += ch;
-    i++;
+    if (char === '\n') return -1
+    if (char === '[') {
+      inClass = true
+      index++
+      continue
+    }
+    if (char === ']') {
+      inClass = false
+      index++
+      continue
+    }
+    if (char === '/' && !inClass) {
+      return index + 1
+    }
+    index++
   }
-  return out;
+  return -1
+}
+
+const TEMPLATE = 'template'
+const INTERPOLATION = 'interpolation'
+
+function pad(out, length) {
+  return out + ' '.repeat(length)
+}
+
+function readEscapedPair(text, start, out) {
+  const pair = text.slice(start, start + 2)
+  return { next: start + pair.length, out: out + pair }
+}
+
+function readTemplateStep(text, start, stack, out) {
+  const char = text[start]
+  if (char === '\\') return readEscapedPair(text, start, out)
+  const opensInterpolation = char === '$' && text[start + 1] === '{'
+  if (opensInterpolation) {
+    stack.push({ kind: INTERPOLATION, braces: 0 })
+    return { next: start + 2, out: pad(out, 2) }
+  }
+  if (char === '`') {
+    stack.pop()
+    return { next: start + 1, out: out + char }
+  }
+  if (char === '\n') return { next: start + 1, out: out + '\n' }
+  return { next: start + 1, out: pad(out, 1) }
+}
+
+function isInterpolationBoundary(char) {
+  return char === '{' || char === '}'
+}
+
+function readInterpolationStep(char, frame, stack, out) {
+  if (char === '{') {
+    frame.braces++
+    return { out: out + char }
+  }
+  const closesInterpolation = frame.braces === 0
+  if (closesInterpolation) {
+    stack.pop()
+  } else {
+    frame.braces--
+  }
+  return { out: out + char }
+}
+
+function maskStrings(text) {
+  let out = ''
+  let i = 0
+  const n = text.length
+  const stack = []
+
+  while (i < n) {
+    const ch = text[i]
+    const top = stack.length > 0 ? stack[stack.length - 1] : null
+
+    if (top && top.kind === TEMPLATE) {
+      const step = readTemplateStep(text, i, stack, out)
+      out = step.out
+      i = step.next
+      continue
+    }
+
+    const atInterpolationBoundary = top && top.kind === INTERPOLATION && isInterpolationBoundary(ch)
+    if (atInterpolationBoundary) {
+      const step = readInterpolationStep(ch, top, stack, out)
+      out = step.out
+      i++
+      continue
+    }
+
+    if (ch === '/' && !endsWithDivisionContext(out)) {
+      const end = scanRegexLiteral(text, i)
+      if (end > -1) {
+        out = pad(out + '/', end - i - 2)
+        out += '/'
+        i = end
+        continue
+      }
+    }
+
+    if (ch === "'" || ch === '"') {
+      let j = i + 1
+      let closed = false
+      while (j < n) {
+        const c = text[j]
+        if (c === '\\') {
+          j += 2
+          continue
+        }
+        if (c === '\n') break
+        if (c === ch) {
+          closed = true
+          break
+        }
+        j++
+      }
+      if (closed) {
+        out = pad(out + ch, j - i - 1)
+        out += ch
+        i = j + 1
+        continue
+      }
+      out += ch
+      i++
+      continue
+    }
+
+    if (ch === '`') {
+      stack.push({ kind: TEMPLATE })
+      out += ch
+      i++
+      continue
+    }
+
+    out += ch
+    i++
+  }
+  return out
 }
 
 function tokenHits(masked, cssOnly) {
@@ -185,10 +312,14 @@ for (const file of files) {
   }
 }
 
-if (violations.length > 0) {
-  for (const violation of violations) {
-    console.log('check-no-comments: ' + violation);
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  if (violations.length > 0) {
+    for (const violation of violations) {
+      console.log('check-no-comments: ' + violation);
+    }
+    process.exit(1);
   }
-  process.exit(1);
+  console.log('check-no-comments: ok - source, examples and docs code fences contain no comments');
 }
-console.log('check-no-comments: ok - source, examples and docs code fences contain no comments');
+
+export { maskStrings, tokenHits, violations };
