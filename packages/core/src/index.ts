@@ -863,10 +863,15 @@ function disposeEffect(effectObj: Effect): void {
   }
 }
 
+function captureEffectChildren(effectObj: Effect, startIndex: number): void {
+  if (!effectObj.children) return
+  effectObj.children.push(...allEffects.slice(startIndex))
+}
+
 function createEffectRunner(effectObj: Effect, fn: () => void | (() => void)): () => void {
   return (): void => {
     disposeEffectChildren(effectObj)
-    const mark = allEffects.length
+    const childrenStartIndex = allEffects.length
     effectStack.push(effectObj)
     try {
       const result = fn()
@@ -876,9 +881,7 @@ function createEffectRunner(effectObj: Effect, fn: () => void | (() => void)): (
     } finally {
       effectStack.pop()
     }
-    if (effectObj.children) {
-      effectObj.children.push(...allEffects.slice(mark))
-    }
+    captureEffectChildren(effectObj, childrenStartIndex)
   }
 }
 
