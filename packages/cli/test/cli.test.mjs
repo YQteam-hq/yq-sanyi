@@ -293,6 +293,20 @@ describe('yq dev', () => {
     assert.ok(res.type.includes('text/plain'), res.type);
   });
 
+  it('answers 400 for a malformed path that carries a query string', async () => {
+    const res = await fetchRaw(port, '/%?from=bookmark');
+    assert.equal(res.status, 400);
+    assert.ok(res.type.includes('text/plain'), res.type);
+    assert.equal(res.body, 'bad request');
+  });
+
+  it('still decodes a valid percent-encoded path', async () => {
+    const res = await fetchRaw(port, '/styl%65.css');
+    assert.equal(res.status, 200);
+    assert.ok(res.type.includes('text/css'), res.type);
+    assert.ok(res.body.includes('color: #111'), res.body);
+  });
+
   it('keeps serving after a malformed percent-encoded path', async () => {
     const bad = await fetchRaw(port, '/%');
     assert.equal(bad.status, 400);
