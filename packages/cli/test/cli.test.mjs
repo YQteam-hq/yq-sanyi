@@ -300,6 +300,13 @@ describe('yq dev', () => {
     assert.ok(result.stderr.includes('not a directory'), result.stderr);
   });
 
+  it('rejects --dir when the path does not exist', () => {
+    const dir = tempDir('dev-dir-missing');
+    const result = runFailure(['dev', '--dir', join(dir, 'missing')], dir);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes('directory not found'), result.stderr);
+  });
+
   it('rejects a config dir that points at a file', () => {
     const dir = tempDir('dev-config-dir-file');
     writeFileSync(join(dir, 'yq.config.mjs'), 'export default { dir: "notes.txt" };\n');
