@@ -4,7 +4,9 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline/promises';
 import { line, warn } from './log.mjs';
-import { optionText } from './args.mjs';
+import { optionText, collectUnknownOptions } from './args.mjs';
+
+const INIT_OPTIONS = new Set(['help', 'version', 'quiet', 'dir', 'yes', 'no-example']);
 
 const templateDir = fileURLToPath(new URL('../templates/init/', import.meta.url));
 const coreFallback = fileURLToPath(new URL('../../core/dist/core.global.js', import.meta.url));
@@ -95,6 +97,14 @@ export async function runInit(options) {
   if (options.help) {
     line(INIT_USAGE);
     return 0;
+  }
+  const unknownOptions = collectUnknownOptions(options, INIT_OPTIONS);
+  if (unknownOptions.length > 0) {
+    for (const name of unknownOptions) {
+      warn('unknown option --' + name);
+    }
+    line(INIT_USAGE);
+    return 1;
   }
   let name = options._[1];
   let example = options['no-example'] !== true;

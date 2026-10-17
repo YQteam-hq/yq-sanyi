@@ -62,3 +62,17 @@ export function optionNumber(options, name, fallback) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
+
+export function collectUnknownOptions(options, known) {
+  const unknown = [];
+  for (const key of Object.keys(options)) {
+    if (key === '_') {
+      continue;
+    }
+    if (known.has(key)) {
+      continue;
+    }
+    unknown.push(key);
+  }
+  return unknown;
+}

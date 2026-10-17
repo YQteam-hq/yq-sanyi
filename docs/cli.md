@@ -44,7 +44,10 @@ vendor/           the yq-sanyi runtime, copied from packages/core/dist/core.glob
 ```
 
 The command refuses to write into a directory that already holds files, and it
-refuses names that contain path segments.
+refuses names that contain path segments. An option the command does not know is
+refused before anything is written: the command prints `unknown option --name`,
+shows the usage and exits with status 1, so a typo such as `--forse` cannot
+silently change the scaffold.
 
 ## yq dev
 
@@ -79,11 +82,16 @@ Two behaviours matter while editing:
 Requests that resolve outside the served directory are answered with `403`, so a
 path such as `/..%2f..%2fpackage.json` cannot read files above the root.
 
+Unknown options are refused before the server starts: a typo such as `--dirr`
+prints `unknown option --dirr`, shows the usage and exits with status 1 instead
+of silently serving with defaults.
+
 ## Tests
 
 The cli suite lives in `packages/cli/test/cli.test.mjs` and runs with the rest of the
 repository through `npm test`. It covers the usage and version output, the scaffold
 file set with its placeholder substitution, the `--no-example` variant, the refusals
-for a busy target directory and a name with path segments, and the dev server
-contract: the entry document with the injected client, content types, `404`, `403`,
-and a reload event after a watched file changes.
+for a busy target directory, a name with path segments and an unknown option, and
+the dev server contract: the entry document with the injected client, content
+types, `404`, `403`, the refusal of an unknown option, and a reload event after a
+watched file changes.
